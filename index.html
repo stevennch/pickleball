@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ピックルボール 組み合わせメーカー</title>
+<style>
+  :root {
+    --bg: #f4f6f8;
+    --card: #ffffff;
+    --primary: #1a7f5a;
+    --primary-dark: #146245;
+    --accent: #f5b301;
+    --text: #1f2933;
+    --muted: #6b7280;
+    --border: #e2e8f0;
+    --danger: #d64545;
+    --rest-bg: #fff7e0;
+    --warmup: #3b82c4;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", Meiryo, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding-bottom: 60px;
+  }
+  header {
+    background: var(--primary);
+    color: #fff;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  header h1 { font-size: 1.1rem; font-weight: 700; }
+  header .ball { font-size: 1.4rem; }
+  main { max-width: 720px; margin: 0 auto; padding: 16px; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .card h2 {
+    font-size: 1rem;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .card h2 .badge {
+    background: var(--primary);
+    color: #fff;
+    font-size: 0.75rem;
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-weight: 600;
+  }
+
+  input[type="text"], input[type="url"], input[type="time"], textarea {
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: inherit;
+    width: 100%;
+  }
+  button {
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+  }
+  .btn-primary {
+    background: var(--primary);
+    color: #fff;
+    padding: 10px 18px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .btn-primary:active { background: var(--primary-dark); }
+  .btn-ghost {
+    background: #fff;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 6px 14px;
+    font-size: 0.85rem;
+  }
+  .add-row { display: flex; gap: 8px; }
+  .hint { color: var(--muted); font-size: 0.85rem; margin-top: 8px; }
+
+  /* 調整さん取り込み */
+  .cs-status {
+    margin-top: 10px;
+    font-size: 0.88rem;
+    padding: 10px 12px;
+    border-radius: 8px;
+    display: none;
+  }
+  .cs-status.info { display: block; background: #eaf2fb; color: #1d5a96; }
+  .cs-status.ok { display: block; background: #e6f4ee; color: var(--primary-dark); }
+  .cs-status.err { display: block; background: #fdecec; color: var(--danger); }
+  .cs-dates { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .cs-date-btn {
+    border: 1.5px solid var(--border);
+    background: #fff;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    text-align: center;
+  }
+  .cs-date-btn.best { border-color: var(--accent); background: #fff8e1; }
+  .cs-date-btn.chosen { border-color: var(--primary); background: #e6f4ee; font-weight: 700; }
+  .cs-date-btn .cnt { display: block; font-size: 0.75rem; color: var(--muted); }
+  .cs-fallback { display: none; margin-top: 12px; }
+  .cs-fallback.show { display: block; }
+  .cs-fallback textarea { height: 110px; font-size: 0.85rem; margin-top: 8px; }
+  .cs-fallback .open-csv {
+    display: inline-block;
+    margin-top: 4px;
+    color: var(--primary);
+    font-weight: 600;
+    font-size: 0.88rem;
+  }
+
+  /* メンバーリスト */
+  .member-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .member-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border: 1.5px solid var(--border);
+    border-radius: 999px;
+    padding: 7px 8px 7px 14px;
+    background: #fff;
+    user-select: none;
+  }
+  .member-chip.selected {
+    border-color: var(--primary);
+    background: #e6f4ee;
+  }
+  .member-chip .name { cursor: pointer; font-weight: 600; }
+  .member-chip.selected .name { color: var(--primary-dark); }
+  .member-chip .del {
+    background: transparent;
+    color: var(--muted);
+    font-size: 1rem;
+    width: 24px; height: 24px;
+    line-height: 1;
+    border-radius: 50%;
+  }
+  .member-chip .del:hover { background: #fdecec; color: var(--danger); }
+  .select-actions { margin-top: 12px; display: flex; gap: 8px; }
+
+  /* 設定 */
+  .settings-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .setting label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+  .setting.full { grid-column: 1 / -1; }
+  .stepper {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .stepper button {
+    width: 44px; height: 44px;
+    background: #f1f5f9;
+    font-size: 1.3rem;
+    color: var(--primary);
+    font-weight: 700;
+    border-radius: 0;
+  }
+  .stepper .value {
+    flex: 1;
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: 700;
+  }
+  input[type="time"] { height: 46px; }
+
+  .generate-wrap { text-align: center; margin: 20px 0; }
+  .btn-generate {
+    background: var(--accent);
+    color: #4a3600;
+    font-size: 1.05rem;
+    font-weight: 700;
+    padding: 14px 36px;
+    border-radius: 999px;
+    box-shadow: 0 2px 6px rgba(245,179,1,0.4);
+  }
+  .btn-generate:active { transform: scale(0.98); }
+  .error-msg {
+    color: var(--danger);
+    text-align: center;
+    font-size: 0.9rem;
+    margin-top: 8px;
+    display: none;
+  }
+
+  /* タイムライン */
+  .timeline { margin-bottom: 14px; }
+  .timeline-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    font-size: 0.92rem;
+  }
+  .timeline-row.warmup { background: #eaf2fb; }
+  .timeline-row.games { background: #e6f4ee; }
+  .timeline-row .time {
+    font-weight: 800;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .timeline-row.warmup .time { color: var(--warmup); }
+  .timeline-row.games .time { color: var(--primary-dark); }
+  .timeline-row .desc { font-weight: 600; }
+  .timeline-row .sub { color: var(--muted); font-size: 0.8rem; margin-left: auto; white-space: nowrap; }
+
+  /* 対戦表 */
+  .round {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+  .round-header {
+    background: var(--primary);
+    color: #fff;
+    padding: 8px 14px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .round-header .rtime {
+    font-size: 0.8rem;
+    font-weight: 600;
+    opacity: 0.9;
+    font-variant-numeric: tabular-nums;
+  }
+  .court-row {
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+    border-top: 1px solid var(--border);
+    gap: 10px;
+  }
+  .court-label {
+    flex-shrink: 0;
+    background: #e6f4ee;
+    color: var(--primary-dark);
+    font-weight: 700;
+    font-size: 0.8rem;
+    border-radius: 6px;
+    padding: 4px 8px;
+    white-space: nowrap;
+  }
+  .matchup {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .pair { font-weight: 600; font-size: 0.95rem; }
+  .vs {
+    color: var(--accent);
+    font-weight: 800;
+    font-size: 0.8rem;
+    background: #fff8e1;
+    border-radius: 4px;
+    padding: 2px 6px;
+  }
+  .rest-row {
+    background: var(--rest-bg);
+    padding: 8px 14px;
+    border-top: 1px solid var(--border);
+    font-size: 0.85rem;
+    color: #8a6d00;
+  }
+
+  /* 集計 */
+  table.stats {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+  table.stats th, table.stats td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+  }
+  table.stats th { color: var(--muted); font-size: 0.8rem; }
+  table.stats td.num { text-align: center; font-weight: 700; }
+
+  .empty-note {
+    text-align: center;
+    color: var(--muted);
+    padding: 24px 0;
+    font-size: 0.9rem;
+  }
+</style>
+</head>
+<body>
+<header>
+  <span class="ball">🏓</span>
+  <h1>ピックルボール 組み合わせメーカー</h1>
+</header>
+<main>
+
+  <!-- 調整さん取り込み -->
+  <section class="card">
+    <h2>調整さんから参加者を取り込み</h2>
+    <form class="add-row" id="cs-form">
+      <input type="url" id="cs-url" placeholder="調整さんのURLを貼り付け" inputmode="url">
+      <button type="submit" class="btn-primary" id="cs-import-btn">取り込む</button>
+    </form>
+    <p class="cs-status" id="cs-status"></p>
+    <div class="cs-dates" id="cs-dates"></div>
+    <div class="cs-fallback" id="cs-fallback">
+      <p class="hint">自動取得できませんでした。下のリンクから出欠表（CSV）を開き、内容を全部コピーして貼り付けてください。</p>
+      <a class="open-csv" id="cs-csv-link" href="#" target="_blank" rel="noopener">📄 出欠表CSVを開く</a>
+      <textarea id="cs-paste" placeholder="ここにCSVの内容を貼り付け"></textarea>
+      <div class="select-actions">
+        <button class="btn-primary" id="cs-parse-btn" type="button">貼り付けた内容を取り込む</button>
+      </div>
+    </div>
+    <p class="hint">一番◯が多い日程の参加者を自動で選択します（未登録の名前はメンバーに追加）。日程は下のボタンで切り替えできます。</p>
+  </section>
+
+  <!-- メンバー管理 -->
+  <section class="card">
+    <h2>メンバー管理 <span class="badge" id="attend-count">参加 0人</span></h2>
+    <form class="add-row" id="add-member-form">
+      <input type="text" id="new-member-name" placeholder="名前を入力" maxlength="20" autocomplete="off">
+      <button type="submit" class="btn-primary" id="add-member-btn">追加</button>
+    </form>
+    <div class="member-list" id="member-list"></div>
+    <div class="select-actions">
+      <button class="btn-ghost" id="select-all-btn">全員選択</button>
+      <button class="btn-ghost" id="clear-all-btn">選択解除</button>
+    </div>
+    <p class="hint">名前をタップして当日の参加者を選択（緑＝参加）。「×」でメンバー削除。</p>
+  </section>
+
+  <!-- 設定 -->
+  <section class="card">
+    <h2>当日の設定</h2>
+    <div class="settings-grid">
+      <div class="setting">
+        <label>開始時刻（2時間：前半30分アップ＋90分ゲーム）</label>
+        <input type="time" id="start-time" value="10:00">
+      </div>
+      <div class="setting">
+        <label>ラウンド数（90分の目安：8）</label>
+        <div class="stepper">
+          <button id="round-minus" type="button">−</button>
+          <span class="value" id="round-count">8</span>
+          <button id="round-plus" type="button">＋</button>
+        </div>
+      </div>
+      <div class="setting">
+        <label>コート数</label>
+        <div class="stepper">
+          <button id="court-minus" type="button">−</button>
+          <span class="value" id="court-count">2</span>
+          <button id="court-plus" type="button">＋</button>
+        </div>
+      </div>
+      <div class="setting">
+        <label>予約コート番号（任意・カンマ区切り）</label>
+        <input type="text" id="court-numbers" placeholder="例: 3,5" inputmode="text" autocomplete="off">
+      </div>
+    </div>
+    <p class="hint">コート番号を入力すると、コート数はその個数に合わせて自動設定され、対戦表に実際の番号が表示されます。</p>
+  </section>
+
+  <div class="generate-wrap">
+    <button class="btn-generate" id="generate-btn">🎾 組み合わせを作成</button>
+    <p class="error-msg" id="error-msg"></p>
+  </div>
+
+  <!-- 対戦表 -->
+  <section class="card">
+    <h2>当日のスケジュール・対戦表</h2>
+    <div id="schedule"><p class="empty-note">参加者とコートを設定して「組み合わせを作成」を押してください</p></div>
+  </section>
+
+  <!-- 集計 -->
+  <section class="card" id="stats-card" style="display:none">
+    <h2>試合数の集計</h2>
+    <table class="stats">
+      <thead><tr><th>名前</th><th style="text-align:center">試合数</th><th style="text-align:center">休憩数</th></tr></thead>
+      <tbody id="stats-body"></tbody>
+    </table>
+  </section>
+
+</main>
+<script>
+(function () {
+  'use strict';
+
+  var STORAGE_KEY = 'pickleball_app_v1';
+
+  var state = {
+    members: [],       // {id, name}
+    attending: {},     // id -> true
+    courts: 2,
+    rounds: 8,
+    startTime: '10:00',
+    courtNumbers: '',  // "3,5" など
+    csUrl: '',
+  };
+
+  var WARMUP_MIN = 30;
+  var GAME_MIN = 90;
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        var saved = JSON.parse(raw);
+        state.members = saved.members || [];
+        state.attending = saved.attending || {};
+        state.courts = saved.courts || 2;
+        state.rounds = saved.rounds || 8;
+        state.startTime = saved.startTime || '10:00';
+        state.courtNumbers = saved.courtNumbers || '';
+        state.csUrl = saved.csUrl || '';
+      }
+    } catch (e) { /* 破損時は初期状態 */ }
+  }
+
+  function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  // ---------- メンバー管理 ----------
+  var memberListEl = document.getElementById('member-list');
+  var attendCountEl = document.getElementById('attend-count');
+  var nameInput = document.getElementById('new-member-name');
+
+  function renderMembers() {
+    memberListEl.innerHTML = '';
+    state.members.forEach(function (m) {
+      var chip = document.createElement('div');
+      chip.className = 'member-chip' + (state.attending[m.id] ? ' selected' : '');
+
+      var name = document.createElement('span');
+      name.className = 'name';
+      name.textContent = m.name;
+      name.addEventListener('click', function () {
+        if (state.attending[m.id]) delete state.attending[m.id];
+        else state.attending[m.id] = true;
+        save();
+        renderMembers();
+      });
+
+      var del = document.createElement('button');
+      del.className = 'del';
+      del.type = 'button';
+      del.textContent = '×';
+      del.setAttribute('aria-label', m.name + 'を削除');
+      del.addEventListener('click', function () {
+        if (!confirm('「' + m.name + '」を削除しますか？')) return;
+        state.members = state.members.filter(function (x) { return x.id !== m.id; });
+        delete state.attending[m.id];
+        save();
+        renderMembers();
+      });
+
+      chip.appendChild(name);
+      chip.appendChild(del);
+      memberListEl.appendChild(chip);
+    });
+    var count = Object.keys(state.attending).length;
+    attendCountEl.textContent = '参加 ' + count + '人';
+  }
+
+  function newId() {
+    return Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+  }
+
+  function addMember() {
+    var name = nameInput.value.trim();
+    if (!name) return;
+    var dup = state.members.some(function (m) { return m.name === name; });
+    if (dup) { alert('同じ名前のメンバーがいます'); return; }
+    var member = { id: newId(), name: name };
+    state.members.push(member);
+    state.attending[member.id] = true;
+    nameInput.value = '';
+    nameInput.focus();
+    save();
+    renderMembers();
+  }
+
+  document.getElementById('add-member-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    addMember();
+  });
+
+  document.getElementById('select-all-btn').addEventListener('click', function () {
+    state.members.forEach(function (m) { state.attending[m.id] = true; });
+    save(); renderMembers();
+  });
+  document.getElementById('clear-all-btn').addEventListener('click', function () {
+    state.attending = {};
+    save(); renderMembers();
+  });
+
+  // ---------- 調整さん取り込み ----------
+  var csStatus = document.getElementById('cs-status');
+  var csDatesEl = document.getElementById('cs-dates');
+  var csFallback = document.getElementById('cs-fallback');
+  var csData = null; // { dates: [...], rows: [[name, mark1, mark2, ...], ...] }
+  var csChosenIdx = -1;
+
+  function setCsStatus(kind, msg) {
+    csStatus.className = 'cs-status ' + kind;
+    csStatus.textContent = msg;
+  }
+
+  function extractHash(url) {
+    var m = /[?&]h=([0-9a-fA-F]+)/.exec(url);
+    return m ? m[1] : null;
+  }
+
+  // ダブルクォート対応の簡易CSV行パーサ
+  function splitCsvLine(line) {
+    var out = [];
+    var cur = '';
+    var inQ = false;
+    for (var i = 0; i < line.length; i++) {
+      var c = line[i];
+      if (inQ) {
+        if (c === '"') {
+          if (line[i + 1] === '"') { cur += '"'; i++; }
+          else inQ = false;
+        } else cur += c;
+      } else {
+        if (c === '"') inQ = true;
+        else if (c === ',') { out.push(cur); cur = ''; }
+        else cur += c;
+      }
+    }
+    out.push(cur);
+    return out;
+  }
+
+  function isMaru(mark) {
+    var t = (mark || '').trim();
+    return t === '◯' || t === '○' || t === '⭕' || t === 'O' || t === 'o';
+  }
+
+  function parseChouseisanCsv(text) {
+    var lines = text.replace(/\r/g, '').split('\n').filter(function (l) { return l.trim() !== ''; });
+    var hIdx = -1;
+    for (var i = 0; i < lines.length; i++) {
+      if (splitCsvLine(lines[i])[0].trim() === '参加者') { hIdx = i; break; }
+    }
+    if (hIdx === -1) return null;
+    var header = splitCsvLine(lines[hIdx]).map(function (s) { return s.trim(); });
+    var lastCol = header.length;
+    if (header[header.length - 1] === 'コメント') lastCol = header.length - 1;
+    var dates = header.slice(1, lastCol);
+    if (dates.length === 0) return null;
+    var rows = [];
+    for (var j = hIdx + 1; j < lines.length; j++) {
+      var cells = splitCsvLine(lines[j]);
+      var name = (cells[0] || '').trim();
+      if (!name) continue;
+      rows.push({ name: name, marks: cells.slice(1, 1 + dates.length) });
+    }
+    if (rows.length === 0) return null;
+    return { dates: dates, rows: rows };
+  }
+
+  function maruCounts(data) {
+    return data.dates.map(function (_, di) {
+      return data.rows.filter(function (r) { return isMaru(r.marks[di]); }).length;
+    });
+  }
+
+  function applyCsDate(di) {
+    csChosenIdx = di;
+    var names = csData.rows
+      .filter(function (r) { return isMaru(r.marks[di]); })
+      .map(function (r) { return r.name; });
+
+    var added = 0;
+    state.attending = {};
+    names.forEach(function (n) {
+      var existing = state.members.filter(function (m) { return m.name === n; })[0];
+      if (!existing) {
+        existing = { id: newId(), name: n };
+        state.members.push(existing);
+        added++;
+      }
+      state.attending[existing.id] = true;
+    });
+    save();
+    renderMembers();
+    renderCsDates();
+
+    var msg = '「' + csData.dates[di] + '」の◯ ' + names.length + '人を参加に設定しました';
+    if (added > 0) msg += '（新規メンバー ' + added + '人を追加）';
+    setCsStatus('ok', msg);
+  }
+
+  function renderCsDates() {
+    csDatesEl.innerHTML = '';
+    if (!csData) return;
+    var counts = maruCounts(csData);
+    var maxCnt = Math.max.apply(null, counts);
+    csData.dates.forEach(function (d, di) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'cs-date-btn'
+        + (counts[di] === maxCnt ? ' best' : '')
+        + (di === csChosenIdx ? ' chosen' : '');
+      b.innerHTML = '';
+      var label = document.createElement('span');
+      label.textContent = d;
+      var cnt = document.createElement('span');
+      cnt.className = 'cnt';
+      cnt.textContent = '◯ ' + counts[di] + '人';
+      b.appendChild(label);
+      b.appendChild(cnt);
+      b.addEventListener('click', function () { applyCsDate(di); });
+      csDatesEl.appendChild(b);
+    });
+  }
+
+  function handleCsData(data) {
+    csData = data;
+    csFallback.classList.remove('show');
+    var counts = maruCounts(data);
+    var bestIdx = counts.indexOf(Math.max.apply(null, counts));
+    applyCsDate(bestIdx);
+  }
+
+  function fetchWithTimeout(url, ms) {
+    return new Promise(function (resolve, reject) {
+      var timer = setTimeout(function () { reject(new Error('timeout')); }, ms);
+      fetch(url).then(function (r) {
+        clearTimeout(timer);
+        if (!r.ok) { reject(new Error('HTTP ' + r.status)); return; }
+        r.text().then(resolve, reject);
+      }, function (e) { clearTimeout(timer); reject(e); });
+    });
+  }
+
+  function importFromChouseisan() {
+    var url = document.getElementById('cs-url').value.trim();
+    var hash = extractHash(url);
+    if (!hash) {
+      setCsStatus('err', '調整さんのURLが正しくありません（例: https://chouseisan.com/s?h=xxxx）');
+      return;
+    }
+    state.csUrl = url;
+    save();
+
+    var csvUrl = 'https://chouseisan.com/schedule/List/createCsv?h=' + hash + '&charset=utf-8&row=member';
+    document.getElementById('cs-csv-link').href = csvUrl;
+
+    var candidates = [
+      csvUrl,
+      'https://api.allorigins.win/raw?url=' + encodeURIComponent(csvUrl),
+      'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(csvUrl),
+    ];
+
+    setCsStatus('info', '出欠データを取得中…');
+    var btn = document.getElementById('cs-import-btn');
+    btn.disabled = true;
+
+    var idx = 0;
+    function tryNext() {
+      if (idx >= candidates.length) {
+        btn.disabled = false;
+        setCsStatus('err', '自動取得できませんでした。下の手順で貼り付けてください。');
+        csFallback.classList.add('show');
+        return;
+      }
+      var u = candidates[idx++];
+      fetchWithTimeout(u, 8000).then(function (text) {
+        var data = parseChouseisanCsv(text);
+        if (data) {
+          btn.disabled = false;
+          handleCsData(data);
+        } else {
+          tryNext();
+        }
+      }, function () { tryNext(); });
+    }
+    tryNext();
+  }
+
+  document.getElementById('cs-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    importFromChouseisan();
+  });
+
+  document.getElementById('cs-parse-btn').addEventListener('click', function () {
+    var text = document.getElementById('cs-paste').value;
+    var data = parseChouseisanCsv(text);
+    if (!data) {
+      setCsStatus('err', '貼り付けた内容を読み取れませんでした。CSVの内容をそのまま貼り付けてください。');
+      return;
+    }
+    handleCsData(data);
+  });
+
+  // ---------- ステッパー・設定 ----------
+  var courtValueEl = document.getElementById('court-count');
+  var courtNumbersInput = document.getElementById('court-numbers');
+  var startTimeInput = document.getElementById('start-time');
+
+  function parseCourtNumbers() {
+    return state.courtNumbers
+      .split(/[,、，\s]+/)
+      .map(function (s) { return s.trim(); })
+      .filter(function (s) { return s !== ''; });
+  }
+
+  function syncCourtsFromNumbers() {
+    var nums = parseCourtNumbers();
+    if (nums.length > 0) {
+      state.courts = nums.length;
+      courtValueEl.textContent = state.courts;
+    }
+  }
+
+  function bindStepper(minusId, plusId, valueId, key, min, max, onChange) {
+    var valueEl = document.getElementById(valueId);
+    function render() { valueEl.textContent = state[key]; }
+    document.getElementById(minusId).addEventListener('click', function () {
+      if (state[key] > min) { state[key]--; save(); render(); if (onChange) onChange(); }
+    });
+    document.getElementById(plusId).addEventListener('click', function () {
+      if (state[key] < max) { state[key]++; save(); render(); if (onChange) onChange(); }
+    });
+    render();
+  }
+
+  courtNumbersInput.addEventListener('input', function () {
+    state.courtNumbers = courtNumbersInput.value;
+    syncCourtsFromNumbers();
+    save();
+  });
+
+  startTimeInput.addEventListener('change', function () {
+    state.startTime = startTimeInput.value || '10:00';
+    save();
+  });
+
+  // ---------- 時刻ユーティリティ ----------
+  function timeToMin(hhmm) {
+    var p = hhmm.split(':');
+    return parseInt(p[0], 10) * 60 + parseInt(p[1], 10);
+  }
+  function minToTime(min) {
+    min = ((min % 1440) + 1440) % 1440;
+    var h = Math.floor(min / 60), m = min % 60;
+    return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+  }
+
+  // ---------- 組み合わせ生成 ----------
+  function generateSchedule(players, courts, rounds) {
+    var gamesPlayed = {};
+    var restCount = {};
+    var partnerCount = {};
+    var opponentCount = {};
+    players.forEach(function (p) { gamesPlayed[p.id] = 0; restCount[p.id] = 0; });
+
+    function pairKey(a, b) { return a.id < b.id ? a.id + '|' + b.id : b.id + '|' + a.id; }
+
+    function shuffle(arr) {
+      var a = arr.slice();
+      for (var i = a.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var t = a[i]; a[i] = a[j]; a[j] = t;
+      }
+      return a;
+    }
+
+    var schedule = [];
+    for (var r = 0; r < rounds; r++) {
+      var courtsUsed = Math.min(courts, Math.floor(players.length / 4));
+      var slots = courtsUsed * 4;
+
+      var sorted = shuffle(players).sort(function (a, b) {
+        if (gamesPlayed[a.id] !== gamesPlayed[b.id]) return gamesPlayed[a.id] - gamesPlayed[b.id];
+        return restCount[b.id] - restCount[a.id];
+      });
+      var playing = sorted.slice(0, slots);
+      var resting = sorted.slice(slots);
+
+      var best = null;
+      var bestCost = Infinity;
+      var TRIALS = 300;
+      for (var t = 0; t < TRIALS; t++) {
+        var order = shuffle(playing);
+        var matches = [];
+        var cost = 0;
+        for (var c = 0; c < courtsUsed; c++) {
+          var g = order.slice(c * 4, c * 4 + 4);
+          var pair1 = [g[0], g[1]], pair2 = [g[2], g[3]];
+          cost += Math.pow(partnerCount[pairKey(pair1[0], pair1[1])] || 0, 2) * 10;
+          cost += Math.pow(partnerCount[pairKey(pair2[0], pair2[1])] || 0, 2) * 10;
+          for (var i = 0; i < 2; i++) {
+            for (var j = 0; j < 2; j++) {
+              cost += (opponentCount[pairKey(pair1[i], pair2[j])] || 0);
+            }
+          }
+          matches.push({ pair1: pair1, pair2: pair2 });
+        }
+        if (cost < bestCost) { bestCost = cost; best = matches; }
+        if (bestCost === 0) break;
+      }
+
+      best.forEach(function (m) {
+        partnerCount[pairKey(m.pair1[0], m.pair1[1])] = (partnerCount[pairKey(m.pair1[0], m.pair1[1])] || 0) + 1;
+        partnerCount[pairKey(m.pair2[0], m.pair2[1])] = (partnerCount[pairKey(m.pair2[0], m.pair2[1])] || 0) + 1;
+        m.pair1.forEach(function (a) {
+          m.pair2.forEach(function (b) {
+            opponentCount[pairKey(a, b)] = (opponentCount[pairKey(a, b)] || 0) + 1;
+          });
+        });
+        m.pair1.concat(m.pair2).forEach(function (p) { gamesPlayed[p.id]++; });
+      });
+      resting.forEach(function (p) { restCount[p.id]++; });
+
+      schedule.push({ matches: best, resting: resting });
+    }
+
+    return { schedule: schedule, gamesPlayed: gamesPlayed, restCount: restCount };
+  }
+
+  // ---------- 表示 ----------
+  var scheduleEl = document.getElementById('schedule');
+  var statsCard = document.getElementById('stats-card');
+  var statsBody = document.getElementById('stats-body');
+  var errorEl = document.getElementById('error-msg');
+
+  function courtLabel(ci) {
+    var nums = parseCourtNumbers();
+    if (nums[ci] !== undefined) return 'コート' + nums[ci];
+    return 'コート' + (ci + 1);
+  }
+
+  function renderSchedule(result, players) {
+    scheduleEl.innerHTML = '';
+
+    // タイムライン（前半30分アップ + 90分ゲーム）
+    var start = timeToMin(state.startTime || '10:00');
+    var gameStart = start + WARMUP_MIN;
+    var end = gameStart + GAME_MIN;
+
+    var timeline = document.createElement('div');
+    timeline.className = 'timeline';
+
+    var warm = document.createElement('div');
+    warm.className = 'timeline-row warmup';
+    warm.innerHTML = '<span class="time">' + minToTime(start) + '〜' + minToTime(gameStart) + '</span>'
+      + '<span class="desc">🏃 フリー練習・アップ</span>'
+      + '<span class="sub">30分</span>';
+    timeline.appendChild(warm);
+
+    var games = document.createElement('div');
+    games.className = 'timeline-row games';
+    games.innerHTML = '<span class="time">' + minToTime(gameStart) + '〜' + minToTime(end) + '</span>'
+      + '<span class="desc">🎾 ゲーム（総当たり ' + result.schedule.length + 'ラウンド）</span>'
+      + '<span class="sub">90分</span>';
+    timeline.appendChild(games);
+
+    scheduleEl.appendChild(timeline);
+
+    var perRound = GAME_MIN / result.schedule.length;
+
+    result.schedule.forEach(function (round, idx) {
+      var roundEl = document.createElement('div');
+      roundEl.className = 'round';
+
+      var t1 = gameStart + Math.round(idx * perRound);
+      var t2 = gameStart + Math.round((idx + 1) * perRound);
+
+      var header = document.createElement('div');
+      header.className = 'round-header';
+      var title = document.createElement('span');
+      title.textContent = 'ラウンド ' + (idx + 1);
+      var rtime = document.createElement('span');
+      rtime.className = 'rtime';
+      rtime.textContent = minToTime(t1) + '〜' + minToTime(t2);
+      header.appendChild(title);
+      header.appendChild(rtime);
+      roundEl.appendChild(header);
+
+      round.matches.forEach(function (m, ci) {
+        var row = document.createElement('div');
+        row.className = 'court-row';
+
+        var label = document.createElement('span');
+        label.className = 'court-label';
+        label.textContent = courtLabel(ci);
+
+        var matchup = document.createElement('div');
+        matchup.className = 'matchup';
+
+        var p1 = document.createElement('span');
+        p1.className = 'pair';
+        p1.textContent = m.pair1[0].name + '・' + m.pair1[1].name;
+
+        var vs = document.createElement('span');
+        vs.className = 'vs';
+        vs.textContent = 'VS';
+
+        var p2 = document.createElement('span');
+        p2.className = 'pair';
+        p2.textContent = m.pair2[0].name + '・' + m.pair2[1].name;
+
+        matchup.appendChild(p1);
+        matchup.appendChild(vs);
+        matchup.appendChild(p2);
+        row.appendChild(label);
+        row.appendChild(matchup);
+        roundEl.appendChild(row);
+      });
+
+      if (round.resting.length > 0) {
+        var rest = document.createElement('div');
+        rest.className = 'rest-row';
+        rest.textContent = '☕ 休憩：' + round.resting.map(function (p) { return p.name; }).join('、');
+        roundEl.appendChild(rest);
+      }
+
+      scheduleEl.appendChild(roundEl);
+    });
+
+    statsBody.innerHTML = '';
+    players
+      .slice()
+      .sort(function (a, b) { return result.gamesPlayed[b.id] - result.gamesPlayed[a.id]; })
+      .forEach(function (p) {
+        var tr = document.createElement('tr');
+        var tdName = document.createElement('td');
+        tdName.textContent = p.name;
+        var tdGames = document.createElement('td');
+        tdGames.className = 'num';
+        tdGames.textContent = result.gamesPlayed[p.id];
+        var tdRest = document.createElement('td');
+        tdRest.className = 'num';
+        tdRest.textContent = result.restCount[p.id];
+        tr.appendChild(tdName);
+        tr.appendChild(tdGames);
+        tr.appendChild(tdRest);
+        statsBody.appendChild(tr);
+      });
+    statsCard.style.display = '';
+  }
+
+  document.getElementById('generate-btn').addEventListener('click', function () {
+    errorEl.style.display = 'none';
+    var players = state.members.filter(function (m) { return state.attending[m.id]; });
+
+    if (players.length < 4) {
+      errorEl.textContent = 'ダブルスには最低4人の参加者が必要です（現在 ' + players.length + '人）';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    var result = generateSchedule(players, state.courts, state.rounds);
+    renderSchedule(result, players);
+    document.getElementById('schedule').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  // ---------- 初期化 ----------
+  load();
+  renderMembers();
+  bindStepper('court-minus', 'court-plus', 'court-count', 'courts', 1, 10, function () {
+    // 手動でコート数を変えたらコート番号入力はクリア（不整合防止）
+    if (parseCourtNumbers().length > 0 && parseCourtNumbers().length !== state.courts) {
+      state.courtNumbers = '';
+      courtNumbersInput.value = '';
+      save();
+    }
+  });
+  bindStepper('round-minus', 'round-plus', 'round-count', 'rounds', 1, 20);
+  startTimeInput.value = state.startTime;
+  courtNumbersInput.value = state.courtNumbers;
+  syncCourtsFromNumbers();
+  if (state.csUrl) document.getElementById('cs-url').value = state.csUrl;
+})();
+</script>
+</body>
+</html>
