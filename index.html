@@ -158,6 +158,7 @@
   .tag.g-M { background: #e3edf9; color: #2a6cb5; }
   .tag.g-F { background: #fbe7ef; color: #c2447c; }
   .tag.lv { background: #f1f5f9; color: #475569; }
+  .pair .tag, .fp-unit .tag { margin: 0 1px; vertical-align: 1px; }
   .member-chip .icon-btn {
     background: transparent;
     color: var(--muted);
@@ -442,7 +443,7 @@
         <button class="btn-primary" id="cs-parse-btn" type="button">貼り付けた内容を取り込む</button>
       </div>
     </div>
-    <p class="hint">一番◯が多い日程の参加者を自動で選択します。取り込んだ名前はメンバーとして保存され、次回以降も残ります。日程は下のボタンで切り替えできます。</p>
+    <p class="hint">回答者全員（×の人も含む）をメンバーとして取り込み、一番◯が多い日程の◯の人だけを参加に設定します。取り込んだ名前は次回以降も残ります。日程は下のボタンで切り替えできます。</p>
   </section>
 
   <!-- メンバー管理 -->
@@ -512,7 +513,7 @@
         </div>
       </div>
     </div>
-    <p class="hint">ペアはなるべく「同じレベル」かつ「男女MIX」になるように自動で組まれます。「ペア固定」は最初に組んだペアのまま最後まで対戦します（奇数人数のときは1組だけ3人交代制）。</p>
+    <p class="hint">ペアは実力が偏らないよう「上級者×初心者」のようにバランスを取り、なるべく「男女MIX」になるように自動で組まれます（レベル未設定の人は中間扱い）。「ペア固定」は最初に組んだペアのまま最後まで対戦します（奇数人数のときは1組だけ3人交代制）。</p>
   </section>
 
   <div class="generate-wrap">
@@ -839,29 +840,30 @@
 
   function applyCsDate(di) {
     csChosenIdx = di;
-    var names = csData.rows
-      .filter(function (r) { return isMaru(r.marks[di]); })
-      .map(function (r) { return r.name; });
 
-    // 既存メンバーは残したまま、◯の人だけを参加に設定。
-    // 未登録の名前は新規メンバーとして追加（以降ずっとメンバー管理に残る）。
+    // 回答者全員（×や△の人も含む）をメンバーとして取り込み、
+    // 選んだ日程が◯の人だけを参加に設定する。既存メンバーはそのまま残る。
     var added = 0;
+    var maruCount = 0;
     state.attending = {};
-    names.forEach(function (n) {
-      var existing = state.members.filter(function (m) { return m.name === n; })[0];
+    csData.rows.forEach(function (row) {
+      var existing = state.members.filter(function (m) { return m.name === row.name; })[0];
       if (!existing) {
-        existing = { id: newId(), name: n };
+        existing = { id: newId(), name: row.name };
         state.members.push(existing);
         added++;
       }
-      state.attending[existing.id] = true;
+      if (isMaru(row.marks[di])) {
+        state.attending[existing.id] = true;
+        maruCount++;
+      }
     });
     save();
     renderMembers();
     renderCsDates();
 
-    var msg = '「' + csData.dates[di] + '」の◯ ' + names.length + '人を参加に設定しました';
-    if (added > 0) msg += '（新規メンバー ' + added + '人を追加）';
+    var msg = '「' + csData.dates[di] + '」の◯ ' + maruCount + '人を参加に設定しました';
+    if (added > 0) msg += '（回答者から新規メンバー ' + added + '人を追加）';
     setCsStatus('ok', msg);
   }
 
@@ -1049,22 +1051,31 @@
     return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
   }
 
-  // ---------- ペア品質コスト（同レベル＆男女MIX優先） ----------
+  // ---------- ペア品質コスト（実力バランス＆男女MIX優先） ----------
+  // ペア内で同レベルを揃えるのではなく、ペアの合計戦力を全ペアで均等にする。
+  // 例: 上級者は初心者と組み、強すぎる／弱すぎるペアを作らない。
   function playerLevel(p) {
     return p.level in LEVEL_VAL ? LEVEL_VAL[p.level] : 1.5; // 未設定は中間扱い
   }
 
-  function pairQualityCost(a, b) {
-    var d = Math.abs(playerLevel(a) - playerLevel(b));
-    var cost = d * d * 8;
+  // 理想のペア合計戦力 = 参加者の平均レベル × 2
+  function targetPairSum(players) {
+    var s = 0;
+    players.forEach(function (p) { s += playerLevel(p); });
+    return players.length > 0 ? 2 * s / players.length : 3;
+  }
+
+  function pairBalanceCost(a, b, target) {
+    var d = playerLevel(a) + playerLevel(b) - target;
+    var cost = d * d * 8; // 合計戦力が平均から離れるほどペナルティ
     if (a.gender && b.gender && a.gender === b.gender) cost += 10; // 同性ペアにペナルティ
     return cost;
   }
 
-  function unitQualityCost(u) {
-    if (u.length === 2) return pairQualityCost(u[0], u[1]);
+  function unitQualityCost(u, target) {
+    if (u.length === 2) return pairBalanceCost(u[0], u[1], target);
     // 3人交代ペアは3通りのペアの平均
-    return (pairQualityCost(u[0], u[1]) + pairQualityCost(u[0], u[2]) + pairQualityCost(u[1], u[2])) / 3;
+    return (pairBalanceCost(u[0], u[1], target) + pairBalanceCost(u[0], u[2], target) + pairBalanceCost(u[1], u[2], target)) / 3;
   }
 
   function unitLevel(u) {
@@ -1098,6 +1109,7 @@
       var best = null;
       var bestCost = Infinity;
       var TRIALS = 400;
+      var target = targetPairSum(playing);
       for (var t = 0; t < TRIALS; t++) {
         var order = shuffle(playing);
         var matches = [];
@@ -1107,8 +1119,8 @@
           var pair1 = [g[0], g[1]], pair2 = [g[2], g[3]];
           cost += Math.pow(partnerCount[pairKey(pair1[0], pair1[1])] || 0, 2) * 20;
           cost += Math.pow(partnerCount[pairKey(pair2[0], pair2[1])] || 0, 2) * 20;
-          cost += pairQualityCost(pair1[0], pair1[1]);
-          cost += pairQualityCost(pair2[0], pair2[1]);
+          cost += pairBalanceCost(pair1[0], pair1[1], target);
+          cost += pairBalanceCost(pair2[0], pair2[1], target);
           for (var i = 0; i < 2; i++) {
             for (var j = 0; j < 2; j++) {
               cost += (opponentCount[pairKey(pair1[i], pair2[j])] || 0);
@@ -1140,6 +1152,7 @@
 
   // ---------- ペア固定方式 ----------
   function buildFixedUnits(players) {
+    var target = targetPairSum(players);
     var best = null;
     var bestCost = Infinity;
     for (var t = 0; t < 400; t++) {
@@ -1152,7 +1165,7 @@
         units[units.length - 1].push(order[order.length - 1]); // 奇数なら最後を3人交代ペアに
       }
       var cost = 0;
-      units.forEach(function (u) { cost += unitQualityCost(u); });
+      units.forEach(function (u) { cost += unitQualityCost(u, target); });
       if (cost < bestCost) { bestCost = cost; best = units; }
       if (bestCost === 0) break;
     }
@@ -1164,9 +1177,9 @@
         for (var j2 = i2 + 1; j2 < best.length; j2++) {
           for (var a = 0; a < best[i2].length; a++) {
             for (var b = 0; b < best[j2].length; b++) {
-              var cur = unitQualityCost(best[i2]) + unitQualityCost(best[j2]);
+              var cur = unitQualityCost(best[i2], target) + unitQualityCost(best[j2], target);
               var tmp = best[i2][a]; best[i2][a] = best[j2][b]; best[j2][b] = tmp;
-              var nw = unitQualityCost(best[i2]) + unitQualityCost(best[j2]);
+              var nw = unitQualityCost(best[i2], target) + unitQualityCost(best[j2], target);
               if (nw < cur - 1e-9) {
                 improved = true;
               } else {
@@ -1280,8 +1293,32 @@
     return 'コート' + (ci + 1);
   }
 
-  function pairText(pair) {
-    return pair.map(function (p) { return p.name; }).join('・');
+  // 名前＋性別・レベルのタグを組み立てる
+  function playerLabel(p) {
+    var frag = document.createDocumentFragment();
+    var name = document.createElement('span');
+    name.textContent = p.name;
+    frag.appendChild(name);
+    if (p.gender) {
+      var g = document.createElement('span');
+      g.className = 'tag g-' + p.gender;
+      g.textContent = p.gender === 'M' ? '♂' : '♀';
+      frag.appendChild(g);
+    }
+    if (p.level) {
+      var lv = document.createElement('span');
+      lv.className = 'tag lv';
+      lv.textContent = LEVELS[p.level];
+      frag.appendChild(lv);
+    }
+    return frag;
+  }
+
+  function renderPairInto(el, pair) {
+    pair.forEach(function (p, i) {
+      if (i > 0) el.appendChild(document.createTextNode('・'));
+      el.appendChild(playerLabel(p));
+    });
   }
 
   function renderSchedule(result, players) {
@@ -1327,7 +1364,7 @@
       result.fixedUnits.forEach(function (u) {
         var el = document.createElement('span');
         el.className = 'fp-unit';
-        el.textContent = pairText(u);
+        renderPairInto(el, u);
         if (u.length === 3) {
           var note = document.createElement('span');
           note.className = 'trio-note';
@@ -1373,7 +1410,7 @@
 
         var p1 = document.createElement('span');
         p1.className = 'pair';
-        p1.textContent = pairText(m.pair1);
+        renderPairInto(p1, m.pair1);
 
         var vs = document.createElement('span');
         vs.className = 'vs';
@@ -1381,7 +1418,7 @@
 
         var p2 = document.createElement('span');
         p2.className = 'pair';
-        p2.textContent = pairText(m.pair2);
+        renderPairInto(p2, m.pair2);
 
         matchup.appendChild(p1);
         matchup.appendChild(vs);
