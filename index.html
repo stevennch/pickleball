@@ -101,7 +101,7 @@
     font-weight: 600;
   }
 
-  input[type="text"], input[type="url"], input[type="time"], textarea, select.box {
+  input[type="text"], input[type="url"], input[type="time"], input[type="number"], textarea, select.box {
     padding: 10px 12px;
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -211,6 +211,18 @@
   .tag.g-F { background: #fbe7ef; color: #c2447c; }
   .tag.lv { background: #f1f5f9; color: #475569; }
   .pair .tag, .fp-unit .tag { margin: 0 1px; vertical-align: 1px; }
+  .pair-num {
+    background: var(--primary);
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    border-radius: 6px;
+    padding: 1px 6px;
+    margin-right: 4px;
+    white-space: nowrap;
+    vertical-align: 1px;
+    display: inline-block;
+  }
   .member-chip .icon-btn {
     background: transparent;
     color: var(--muted);
@@ -620,6 +632,11 @@
       <input type="text" id="new-member-name" placeholder="名前を入力" data-i18n-ph="namePh" maxlength="20" autocomplete="off">
       <button type="submit" class="btn-primary" id="add-member-btn" data-i18n="addBtn">追加</button>
     </form>
+    <form class="add-row" id="quick-form" style="margin-top:8px">
+      <input type="number" id="quick-count" min="4" max="40" placeholder="人数" data-i18n-ph="quickPh" inputmode="numeric">
+      <button type="submit" class="btn-ghost" style="white-space:nowrap" data-i18n="quickBtn">人数だけで作成</button>
+    </form>
+    <p class="hint" data-i18n="quickHint">名前を登録しなくても、人数を入れるだけで「1・2・3…」の番号メンバーが作られます。</p>
     <div class="member-list" id="member-list"></div>
     <div class="select-actions">
       <button class="btn-ghost" id="select-all-btn" data-i18n="selectAll">全員選択</button>
@@ -845,7 +862,12 @@
       importBanner: '共有サークル「{name}」が届いています（同名のサークルは上書きされます）',
       importBtn: '取り込む',
       importDone: '「{name}」を取り込みました',
-      importErr: '共有リンクを読み取れませんでした'
+      importErr: '共有リンクを読み取れませんでした',
+      quickPh: '人数',
+      quickBtn: '人数だけで作成',
+      quickHint: '名前を登録しなくても、人数を入れるだけで「1・2・3…」の番号メンバーが作られます。',
+      quickMin: '4人以上の人数を入力してください',
+      pairNum: 'ペア{n}'
     },
     en: {
       appTitle: 'Racket Club Matchmaker',
@@ -915,7 +937,12 @@
       importBanner: 'Shared circle "{name}" received. (A circle with the same name will be overwritten.)',
       importBtn: 'Import',
       importDone: 'Imported "{name}".',
-      importErr: 'Could not read the share link.'
+      importErr: 'Could not read the share link.',
+      quickPh: 'Player count',
+      quickBtn: 'Create by count',
+      quickHint: 'No names needed — enter a player count to create numbered members (1, 2, 3…).',
+      quickMin: 'Enter at least 4 players.',
+      pairNum: 'P{n}'
     },
     vi: {
       appTitle: 'Trình ghép trận CLB vợt',
@@ -985,7 +1012,12 @@
       importBanner: 'Đã nhận CLB chia sẻ "{name}". (CLB trùng tên sẽ bị ghi đè.)',
       importBtn: 'Nhập',
       importDone: 'Đã nhập "{name}".',
-      importErr: 'Không đọc được liên kết chia sẻ.'
+      importErr: 'Không đọc được liên kết chia sẻ.',
+      quickPh: 'Số người',
+      quickBtn: 'Tạo theo số người',
+      quickHint: 'Không cần nhập tên — chỉ cần nhập số người để tạo thành viên đánh số (1, 2, 3…).',
+      quickMin: 'Nhập ít nhất 4 người.',
+      pairNum: 'C{n}'
     }
   };
 
@@ -1230,6 +1262,31 @@
   document.getElementById('add-member-form').addEventListener('submit', function (e) {
     e.preventDefault();
     addMember();
+  });
+
+  // 人数だけ入力して番号メンバー（1・2・3…）を作成。
+  // 自動作成メンバー（auto付き）だけを増減し、名前登録済みメンバーには触れない。
+  document.getElementById('quick-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var n = parseInt(document.getElementById('quick-count').value, 10);
+    if (!n || n < 4) { alert(t('quickMin')); return; }
+    if (n > 40) n = 40;
+
+    var autos = state.members.filter(function (m) { return m.auto; });
+    autos.slice(n).forEach(function (m) {
+      state.members = state.members.filter(function (x) { return x.id !== m.id; });
+      delete state.attending[m.id];
+    });
+    for (var i = autos.length; i < n; i++) {
+      state.members.push({ id: newId(), name: '', auto: true });
+    }
+    // 番号を1..Nに振り直して全員参加に
+    state.members.filter(function (m) { return m.auto; }).forEach(function (m, i) {
+      m.name = String(i + 1);
+      state.attending[m.id] = true;
+    });
+    save();
+    renderMembers();
   });
 
   document.getElementById('select-all-btn').addEventListener('click', function () {
@@ -1538,11 +1595,12 @@
     return Promise.reject(new Error('bad format'));
   }
 
-  function packMember(m) { return [m.id, m.name, m.gender || '', m.level || '']; }
+  function packMember(m) { return [m.id, m.name, m.gender || '', m.level || '', m.auto ? 1 : 0]; }
   function unpackMember(arr) {
     var m = { id: arr[0], name: arr[1] };
     if (arr[2]) m.gender = arr[2];
     if (arr[3]) m.level = arr[3];
+    if (arr[4]) m.auto = true;
     return m;
   }
 
@@ -1564,7 +1622,7 @@
         p: lr.players.map(packMember),
         s: lr.result.schedule.map(function (round) {
           return {
-            m: round.matches.map(function (mt) { return [mt.pair1.map(ix), mt.pair2.map(ix)]; }),
+            m: round.matches.map(function (mt) { return [mt.pair1.map(ix), mt.pair2.map(ix), mt.u1 || 0, mt.u2 || 0]; }),
             r: round.resting.map(ix)
           };
         }),
@@ -1599,7 +1657,9 @@
         result: {
           schedule: payload.r.s.map(function (round) {
             return {
-              matches: round.m.map(function (mt) { return { pair1: mt[0].map(byIx), pair2: mt[1].map(byIx) }; }),
+              matches: round.m.map(function (mt) {
+                return { pair1: mt[0].map(byIx), pair2: mt[1].map(byIx), u1: mt[2] || undefined, u2: mt[3] || undefined };
+              }),
               resting: round.r.map(byIx)
             };
           }),
@@ -1995,7 +2055,8 @@
       var matches = [];
       best.forEach(function (mu) {
         var p1 = effective[mu[0]], p2 = effective[mu[1]];
-        matches.push({ pair1: p1, pair2: p2 });
+        // u1/u2 はペア番号（pairs配列の1始まりインデックス）。対戦表で「ペア3」等と表示する
+        matches.push({ pair1: p1, pair2: p2, u1: mu[0] + 1, u2: mu[1] + 1 });
         oppCount[oppKey(mu[0], mu[1])] = (oppCount[oppKey(mu[0], mu[1])] || 0) + 1;
         p1.concat(p2).forEach(function (p) { gamesPlayed[p.id]++; });
       });
@@ -2044,7 +2105,13 @@
     return frag;
   }
 
-  function renderPairInto(el, pair) {
+  function renderPairInto(el, pair, pairNum) {
+    if (pairNum) {
+      var b = document.createElement('span');
+      b.className = 'pair-num';
+      b.textContent = t('pairNum', { n: pairNum });
+      el.appendChild(b);
+    }
     pair.forEach(function (p, i) {
       if (i > 0) el.appendChild(document.createTextNode(t('pairJoin')));
       el.appendChild(playerLabel(p));
@@ -2112,11 +2179,15 @@
       fp.appendChild(title);
       var list = document.createElement('div');
       list.className = 'fp-list';
+      var pairNo = 0;
       result.fixedUnits.forEach(function (u) {
         var el = document.createElement('span');
         el.className = 'fp-unit';
-        renderPairInto(el, u);
-        if (u.length === 1) {
+        if (u.length === 2) {
+          pairNo++;
+          renderPairInto(el, u, pairNo);
+        } else {
+          renderPairInto(el, u);
           var note = document.createElement('span');
           note.className = 'trio-note';
           note.textContent = t('subNote');
@@ -2161,7 +2232,7 @@
 
         var p1 = document.createElement('span');
         p1.className = 'pair';
-        renderPairInto(p1, m.pair1);
+        renderPairInto(p1, m.pair1, m.u1);
 
         var vs = document.createElement('span');
         vs.className = 'vs';
@@ -2169,7 +2240,7 @@
 
         var p2 = document.createElement('span');
         p2.className = 'pair';
-        renderPairInto(p2, m.pair2);
+        renderPairInto(p2, m.pair2, m.u2);
 
         matchup.appendChild(p1);
         matchup.appendChild(vs);
