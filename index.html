@@ -426,6 +426,11 @@
 
   var STORAGE_KEY = 'pickleball_app_v1';
 
+  // 調整さんCSV中継（Google Apps Script）のURL。
+  // 調整さんはCORS未対応のため、ブラウザから直接取得できない環境では
+  // この中継経由で出欠データを取得する。空文字なら直接取得とプロキシのみ試す。
+  var RELAY_URL = '';
+
   var state = {
     members: [],       // {id, name}
     attending: {},     // id -> true
@@ -688,11 +693,15 @@
     var csvUrl = 'https://chouseisan.com/schedule/List/createCsv?h=' + hash + '&charset=utf-8&row=member';
     document.getElementById('cs-csv-link').href = csvUrl;
 
-    var candidates = [
+    var candidates = [];
+    if (RELAY_URL) {
+      candidates.push(RELAY_URL + (RELAY_URL.indexOf('?') === -1 ? '?' : '&') + 'h=' + hash);
+    }
+    candidates.push(
       csvUrl,
       'https://api.allorigins.win/raw?url=' + encodeURIComponent(csvUrl),
-      'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(csvUrl),
-    ];
+      'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(csvUrl)
+    );
 
     setCsStatus('info', '出欠データを取得中…');
     var btn = document.getElementById('cs-import-btn');
@@ -707,7 +716,7 @@
         return;
       }
       var u = candidates[idx++];
-      fetchWithTimeout(u, 8000).then(function (text) {
+      fetchWithTimeout(u, 15000).then(function (text) {
         var data = parseChouseisanCsv(text);
         if (data) {
           btn.disabled = false;
