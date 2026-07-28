@@ -502,6 +502,41 @@
   }
   .site-footer a:hover { text-decoration: underline; }
 
+  /* 共有リンク */
+  .share-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  .btn-share {
+    background: #fff;
+    border: 1.5px solid var(--primary);
+    color: var(--primary-dark);
+    padding: 9px 16px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    border-radius: 999px;
+  }
+  .btn-share:active { background: #e6f4ee; }
+  .share-status { font-size: 0.8rem; color: var(--primary-dark); }
+  .import-banner {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    background: #eaf2fb;
+    border: 1px solid #b8d4f0;
+    color: #1d5a96;
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 14px;
+    font-size: 0.88rem;
+    flex-wrap: wrap;
+  }
+  .import-banner.show { display: flex; }
+  .import-banner .ib-text { flex: 1; min-width: 200px; }
+
   /* スマホ最適化：狭い画面では設定を1カラムにして折り返し崩れを防ぐ */
   @media (max-width: 560px) {
     header { padding: 12px 10px; gap: 6px; }
@@ -536,6 +571,13 @@
   <button type="button" class="tab" id="tab-schedule" data-i18n="tabSchedule">📋 対戦表</button>
 </nav>
 <main>
+
+<!-- 共有データ受信バナー -->
+<div class="import-banner" id="import-banner">
+  <span class="ib-text" id="import-banner-text"></span>
+  <button type="button" class="btn-primary" id="import-accept" data-i18n="importBtn">取り込む</button>
+  <button type="button" class="icon-btn2" id="import-dismiss" style="width:38px;height:38px;background:#fff;border:1px solid #b8d4f0;color:#1d5a96;">×</button>
+</div>
 
 <div id="view-settings">
 
@@ -649,6 +691,11 @@
 </div><!-- /view-settings -->
 
 <div id="view-schedule" style="display:none">
+
+  <div class="share-row">
+    <button type="button" class="btn-share" id="share-btn">📤 <span data-i18n="shareBtn">共有リンクを作成</span></button>
+    <span class="share-status" id="share-status"></span>
+  </div>
 
   <!-- 対戦表 -->
   <section class="card">
@@ -791,7 +838,14 @@
       done: '完了',
       lv_adv: '上級者', lv_int: '中級者', lv_beg: '初級者', lv_nov: '初心者',
       lvS_adv: '上級', lvS_int: '中級', lvS_beg: '初級', lvS_nov: '初心',
-      developer: '開発者:'
+      developer: '開発者:',
+      shareBtn: '共有リンクを作成',
+      shareCopied: 'リンクをコピーしました。LINEなどでメンバーに送ってください',
+      shareManual: 'このリンクをコピーして共有してください',
+      importBanner: '共有サークル「{name}」が届いています（同名のサークルは上書きされます）',
+      importBtn: '取り込む',
+      importDone: '「{name}」を取り込みました',
+      importErr: '共有リンクを読み取れませんでした'
     },
     en: {
       appTitle: 'Racket Club Matchmaker',
@@ -854,7 +908,14 @@
       done: 'Done',
       lv_adv: 'Advanced', lv_int: 'Intermediate', lv_beg: 'Beginner', lv_nov: 'New player',
       lvS_adv: 'Adv', lvS_int: 'Int', lvS_beg: 'Beg', lvS_nov: 'New',
-      developer: 'Developer:'
+      developer: 'Developer:',
+      shareBtn: 'Create share link',
+      shareCopied: 'Link copied. Send it to your members.',
+      shareManual: 'Copy this link to share',
+      importBanner: 'Shared circle "{name}" received. (A circle with the same name will be overwritten.)',
+      importBtn: 'Import',
+      importDone: 'Imported "{name}".',
+      importErr: 'Could not read the share link.'
     },
     vi: {
       appTitle: 'Trình ghép trận CLB vợt',
@@ -917,7 +978,14 @@
       done: 'Xong',
       lv_adv: 'Giỏi', lv_int: 'Khá', lv_beg: 'Trung bình', lv_nov: 'Mới chơi',
       lvS_adv: 'Giỏi', lvS_int: 'Khá', lvS_beg: 'TB', lvS_nov: 'Mới',
-      developer: 'Nhà phát triển:'
+      developer: 'Nhà phát triển:',
+      shareBtn: 'Tạo liên kết chia sẻ',
+      shareCopied: 'Đã sao chép liên kết. Hãy gửi cho thành viên.',
+      shareManual: 'Sao chép liên kết này để chia sẻ',
+      importBanner: 'Đã nhận CLB chia sẻ "{name}". (CLB trùng tên sẽ bị ghi đè.)',
+      importBtn: 'Nhập',
+      importDone: 'Đã nhập "{name}".',
+      importErr: 'Không đọc được liên kết chia sẻ.'
     }
   };
 
@@ -1430,6 +1498,197 @@
       return;
     }
     handleCsData(data);
+  });
+
+  // ---------- 共有リンク ----------
+  // サークルのデータ（メンバー・設定・対戦表）を圧縮してURLの#d=に埋め込む。
+  // サーバーには何も送信されず、リンクを開いた端末に取り込まれる。
+  function bytesToB64u(bytes) {
+    var bin = '';
+    for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  function b64uToBytes(s) {
+    s = s.replace(/-/g, '+').replace(/_/g, '/');
+    while (s.length % 4) s += '=';
+    var bin = atob(s);
+    var out = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+  function compressText(text) {
+    var data = new TextEncoder().encode(text);
+    if (typeof CompressionStream === 'undefined') {
+      return Promise.resolve('p:' + bytesToB64u(data));
+    }
+    var stream = new Blob([data]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+    return new Response(stream).arrayBuffer().then(function (buf) {
+      return 'z:' + bytesToB64u(new Uint8Array(buf));
+    });
+  }
+  function decompressText(str) {
+    if (str.slice(0, 2) === 'p:') {
+      return Promise.resolve(new TextDecoder().decode(b64uToBytes(str.slice(2))));
+    }
+    if (str.slice(0, 2) === 'z:') {
+      if (typeof DecompressionStream === 'undefined') return Promise.reject(new Error('unsupported'));
+      var stream = new Blob([b64uToBytes(str.slice(2))]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+      return new Response(stream).text();
+    }
+    return Promise.reject(new Error('bad format'));
+  }
+
+  function packMember(m) { return [m.id, m.name, m.gender || '', m.level || '']; }
+  function unpackMember(arr) {
+    var m = { id: arr[0], name: arr[1] };
+    if (arr[2]) m.gender = arr[2];
+    if (arr[3]) m.level = arr[3];
+    return m;
+  }
+
+  function packCircleData(circleName, d) {
+    var payload = {
+      v: 1,
+      n: circleName,
+      m: d.members.map(packMember),
+      a: Object.keys(d.attending),
+      st: [d.courts, d.rounds, d.startTime, d.courtNumbers, d.pairMode === 'rotate' ? 1 : 0, d.durationMin, d.warmupMin],
+      r: null
+    };
+    var lr = d.lastResult;
+    if (lr && lr.result && lr.players) {
+      var idx = {};
+      lr.players.forEach(function (p, i) { idx[p.id] = i; });
+      var ix = function (p) { return idx[p.id]; };
+      payload.r = {
+        p: lr.players.map(packMember),
+        s: lr.result.schedule.map(function (round) {
+          return {
+            m: round.matches.map(function (mt) { return [mt.pair1.map(ix), mt.pair2.map(ix)]; }),
+            r: round.resting.map(ix)
+          };
+        }),
+        g: lr.players.map(function (p) { return lr.result.gamesPlayed[p.id]; }),
+        c: lr.players.map(function (p) { return lr.result.restCount[p.id]; }),
+        u: lr.result.fixedUnits ? lr.result.fixedUnits.map(function (u) { return u.map(ix); }) : null
+      };
+    }
+    return payload;
+  }
+
+  function unpackCircleData(payload) {
+    var d = defaultData();
+    d.members = (payload.m || []).map(unpackMember);
+    d.attending = {};
+    (payload.a || []).forEach(function (id) { d.attending[id] = true; });
+    var st = payload.st || [];
+    d.courts = st[0] || 2;
+    d.rounds = st[1] || 6;
+    d.startTime = st[2] || '10:00';
+    d.courtNumbers = st[3] || '';
+    d.pairMode = st[4] ? 'rotate' : 'fixed';
+    d.durationMin = st[5] || 120;
+    d.warmupMin = (typeof st[6] === 'number') ? st[6] : 30;
+    if (payload.r) {
+      var players = payload.r.p.map(unpackMember);
+      var byIx = function (i) { return players[i]; };
+      var gp = {}, rc = {};
+      players.forEach(function (p, i) { gp[p.id] = payload.r.g[i]; rc[p.id] = payload.r.c[i]; });
+      d.lastResult = {
+        players: players,
+        result: {
+          schedule: payload.r.s.map(function (round) {
+            return {
+              matches: round.m.map(function (mt) { return { pair1: mt[0].map(byIx), pair2: mt[1].map(byIx) }; }),
+              resting: round.r.map(byIx)
+            };
+          }),
+          gamesPlayed: gp,
+          restCount: rc,
+          fixedUnits: payload.r.u ? payload.r.u.map(function (u) { return u.map(byIx); }) : null
+        }
+      };
+    }
+    return d;
+  }
+
+  var shareStatusEl = document.getElementById('share-status');
+  var shareTimer = null;
+  function setShareStatus(msg) {
+    shareStatusEl.textContent = msg;
+    clearTimeout(shareTimer);
+    shareTimer = setTimeout(function () { shareStatusEl.textContent = ''; }, 8000);
+  }
+
+  document.getElementById('share-btn').addEventListener('click', function () {
+    var payload = packCircleData(activeCircle().name, state);
+    compressText(JSON.stringify(payload)).then(function (enc) {
+      var url = location.origin + location.pathname + '#d=' + enc;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(function () {
+          setShareStatus(t('shareCopied'));
+        }, function () {
+          window.prompt(t('shareManual'), url);
+        });
+      } else {
+        window.prompt(t('shareManual'), url);
+      }
+    });
+  });
+
+  // ---------- 共有データの受信 ----------
+  var pendingImport = null;
+  var importBanner = document.getElementById('import-banner');
+
+  function clearImportHash() {
+    history.replaceState(null, '', location.pathname + location.search);
+  }
+
+  function handleImportFromHash() {
+    var m = /[#&]d=([^&]+)/.exec(location.hash);
+    if (!m) return;
+    decompressText(decodeURIComponent(m[1])).then(function (json) {
+      var payload = JSON.parse(json);
+      if (!payload || payload.v !== 1 || !payload.m) throw new Error('bad payload');
+      pendingImport = payload;
+      document.getElementById('import-banner-text').textContent =
+        t('importBanner', { name: payload.n || t('circleDefault') });
+      importBanner.classList.add('show');
+    }).catch(function () {
+      clearImportHash();
+      setCsStatus('err', t('importErr'));
+      alert(t('importErr'));
+    });
+  }
+
+  document.getElementById('import-accept').addEventListener('click', function () {
+    if (!pendingImport) return;
+    var name = pendingImport.n || t('circleDefault');
+    var data = unpackCircleData(pendingImport);
+    var c = activeCircle();
+    if (c) c.data = state; // 現在のサークルを保存してから取り込み
+    var existing = root.circles.filter(function (x) { return x.name === name; })[0];
+    if (existing) {
+      existing.data = data;
+      root.activeId = existing.id;
+    } else {
+      var nc = { id: newId(), name: name, data: data };
+      root.circles.push(nc);
+      root.activeId = nc.id;
+    }
+    state = normalizeData(data);
+    save();
+    pendingImport = null;
+    importBanner.classList.remove('show');
+    clearImportHash();
+    refreshAll();
+    setShareStatus(t('importDone', { name: name }));
+  });
+
+  document.getElementById('import-dismiss').addEventListener('click', function () {
+    pendingImport = null;
+    importBanner.classList.remove('show');
+    clearImportHash();
   });
 
   // ---------- ステッパー・設定 ----------
@@ -2102,6 +2361,7 @@
   renderStoredSchedule();
   switchTab(state.lastResult ? 'schedule' : 'settings');
   save();
+  handleImportFromHash();
 })();
 </script>
 </body>
