@@ -526,7 +526,7 @@
         </div>
       </div>
     </div>
-    <p class="hint">ペアは実力が偏らないよう「上級者×初心者」のようにバランスを取り、なるべく「男女MIX」になるように自動で組まれます（レベル未設定の人は中間扱い）。「ペア固定」は最初に組んだペアのまま最後まで対戦します（奇数人数のときは1組だけ3人交代制）。</p>
+    <p class="hint">ペアは実力が偏らないよう「上級者×初心者」のようにバランスを取り、なるべく「男女MIX」になるように自動で組まれます（レベル未設定の人は中間扱い）。「ペア固定」は最初に組んだペアのまま最後まで対戦します。奇数人数のときは補欠が1人でき、休憩が均等になるように毎ラウンド誰かと交代で出場します。</p>
   </section>
 
   <div class="generate-wrap">
@@ -1095,14 +1095,7 @@
 
   function unitQualityCost(u, target) {
     if (u.length === 2) return pairBalanceCost(u[0], u[1], target);
-    // 3人交代ペアは3通りのペアの平均
-    return (pairBalanceCost(u[0], u[1], target) + pairBalanceCost(u[0], u[2], target) + pairBalanceCost(u[1], u[2], target)) / 3;
-  }
-
-  function unitLevel(u) {
-    var sum = 0;
-    u.forEach(function (p) { sum += playerLevel(p); });
-    return sum / u.length;
+    return 0; // 補欠（1人ユニット）はペアコストなし
   }
 
   // ---------- 毎回シャッフル方式 ----------
@@ -1183,7 +1176,7 @@
         units.push([order[i], order[i + 1]]);
       }
       if (order.length % 2 === 1) {
-        units[units.length - 1].push(order[order.length - 1]); // 奇数なら最後を3人交代ペアに
+        units.push([order[order.length - 1]]); // 奇数なら最後の1人を補欠（毎ラウンド交代出場）に
       }
       var cost = 0;
       units.forEach(function (u) { cost += unitQualityCost(u, target); });
@@ -1215,36 +1208,72 @@
   }
 
   function generateFixedSchedule(players, courts, rounds) {
-    var units = buildFixedUnits(players);
+    var allUnits = buildFixedUnits(players);
+    var pairs = [];
+    var floater = null; // 奇数人数のときの補欠（毎ラウンド交代で出場）
+    allUnits.forEach(function (u) {
+      if (u.length === 2) pairs.push(u);
+      else floater = u[0];
+    });
+
     var gamesPlayed = {};
     var restCount = {};
     players.forEach(function (p) { gamesPlayed[p.id] = 0; restCount[p.id] = 0; });
-    var unitGames = units.map(function () { return 0; });
-    var unitRest = units.map(function () { return 0; });
-    var oppCount = {}; // "ui|uj" -> 対戦回数
+    var oppCount = {}; // "pi|pj" -> 対戦回数
 
     function oppKey(i, j) { return i < j ? i + '|' + j : j + '|' + i; }
 
-    // 3人交代ペア：出場する2人を個人試合数の少ない順に選ぶ
-    function activeMembers(unitIdx) {
-      var u = units[unitIdx];
-      if (u.length === 2) return u.slice();
-      return shuffle(u).sort(function (a, b) { return gamesPlayed[a.id] - gamesPlayed[b.id]; }).slice(0, 2);
-    }
-
     var schedule = [];
     for (var r = 0; r < rounds; r++) {
-      var courtsUsed = Math.min(courts, Math.floor(units.length / 2));
+      var courtsUsed = Math.min(courts, Math.floor(pairs.length / 2));
       var slots = courtsUsed * 2;
 
-      var idxs = shuffle(units.map(function (_, i) { return i; })).sort(function (a, b) {
-        if (unitGames[a] !== unitGames[b]) return unitGames[a] - unitGames[b];
-        return unitRest[b] - unitRest[a];
+      // 出場ペア選択：メンバー個人の試合数が少ないペアを優先
+      // （補欠と交代して休んだ分も個人単位で反映される）
+      var idxs = shuffle(pairs.map(function (_, i) { return i; })).sort(function (a, b) {
+        var ga = gamesPlayed[pairs[a][0].id] + gamesPlayed[pairs[a][1].id];
+        var gb = gamesPlayed[pairs[b][0].id] + gamesPlayed[pairs[b][1].id];
+        if (ga !== gb) return ga - gb;
+        var ra = restCount[pairs[a][0].id] + restCount[pairs[a][1].id];
+        var rb = restCount[pairs[b][0].id] + restCount[pairs[b][1].id];
+        return rb - ra;
       });
       var playingIdx = idxs.slice(0, slots);
       var restingIdx = idxs.slice(slots);
 
+      var roundResting = [];
+      var effective = {}; // pairIdx -> このラウンドの実際の2人
+      playingIdx.forEach(function (pi) { effective[pi] = pairs[pi].slice(); });
+
+      // 補欠の交代：補欠＋出場メンバーの中で「一番休んでいない人」を休ませる。
+      // 交代相手はレベルが近い人を優先し、ペアの強さバランスを保つ。
+      if (floater) {
+        var cands = [{ who: floater, pairIdx: -1 }];
+        playingIdx.forEach(function (pi) {
+          pairs[pi].forEach(function (p) { cands.push({ who: p, pairIdx: pi }); });
+        });
+        cands = shuffle(cands).sort(function (a, b) {
+          if (restCount[a.who.id] !== restCount[b.who.id]) return restCount[a.who.id] - restCount[b.who.id];
+          if (gamesPlayed[b.who.id] !== gamesPlayed[a.who.id]) return gamesPlayed[b.who.id] - gamesPlayed[a.who.id];
+          var da = a.pairIdx === -1 ? 0 : Math.abs(playerLevel(a.who) - playerLevel(floater));
+          var db = b.pairIdx === -1 ? 0 : Math.abs(playerLevel(b.who) - playerLevel(floater));
+          return da - db;
+        });
+        var rester = cands[0];
+        if (rester.pairIdx === -1) {
+          roundResting.push(floater); // 補欠自身が休むラウンド
+        } else {
+          effective[rester.pairIdx] = pairs[rester.pairIdx].map(function (p) {
+            return p.id === rester.who.id ? floater : p;
+          });
+          roundResting.push(rester.who);
+        }
+      }
+
       // 対戦カード決め：同じ相手との再戦を避けつつ、レベルの近いペア同士を当てる
+      function effLevel(pi) {
+        return (playerLevel(effective[pi][0]) + playerLevel(effective[pi][1])) / 2;
+      }
       var best = null;
       var bestCost = Infinity;
       for (var t = 0; t < 300; t++) {
@@ -1254,7 +1283,7 @@
         for (var c = 0; c < courtsUsed; c++) {
           var u1 = order[c * 2], u2 = order[c * 2 + 1];
           cost += (oppCount[oppKey(u1, u2)] || 0) * 8;
-          cost += Math.abs(unitLevel(units[u1]) - unitLevel(units[u2])) * 2;
+          cost += Math.abs(effLevel(u1) - effLevel(u2)) * 2;
           ms.push([u1, u2]);
         }
         if (cost < bestCost) { bestCost = cost; best = ms; }
@@ -1262,44 +1291,22 @@
       }
 
       var matches = [];
-      var roundResting = [];
-      var restingIds = {};
-
       best.forEach(function (mu) {
-        var p1 = activeMembers(mu[0]);
-        var p2 = activeMembers(mu[1]);
+        var p1 = effective[mu[0]], p2 = effective[mu[1]];
         matches.push({ pair1: p1, pair2: p2 });
         oppCount[oppKey(mu[0], mu[1])] = (oppCount[oppKey(mu[0], mu[1])] || 0) + 1;
-        unitGames[mu[0]]++;
-        unitGames[mu[1]]++;
         p1.concat(p2).forEach(function (p) { gamesPlayed[p.id]++; });
-        // 3人交代ペアの控えメンバーはこのラウンド休憩
-        [mu[0], mu[1]].forEach(function (ui) {
-          units[ui].forEach(function (p) {
-            var active = (ui === mu[0] ? p1 : p2).some(function (x) { return x.id === p.id; });
-            if (!active && !restingIds[p.id]) {
-              restingIds[p.id] = true;
-              roundResting.push(p);
-            }
-          });
-        });
       });
 
-      restingIdx.forEach(function (ui) {
-        unitRest[ui]++;
-        units[ui].forEach(function (p) {
-          if (!restingIds[p.id]) {
-            restingIds[p.id] = true;
-            roundResting.push(p);
-          }
-        });
+      restingIdx.forEach(function (pi) {
+        pairs[pi].forEach(function (p) { roundResting.push(p); });
       });
       roundResting.forEach(function (p) { restCount[p.id]++; });
 
       schedule.push({ matches: matches, resting: roundResting });
     }
 
-    return { schedule: schedule, gamesPlayed: gamesPlayed, restCount: restCount, fixedUnits: units };
+    return { schedule: schedule, gamesPlayed: gamesPlayed, restCount: restCount, fixedUnits: allUnits };
   }
 
   // ---------- 表示 ----------
@@ -1386,10 +1393,10 @@
         var el = document.createElement('span');
         el.className = 'fp-unit';
         renderPairInto(el, u);
-        if (u.length === 3) {
+        if (u.length === 1) {
           var note = document.createElement('span');
           note.className = 'trio-note';
-          note.textContent = '（3人交代）';
+          note.textContent = '（補欠・交代出場）';
           el.appendChild(note);
         }
         list.appendChild(el);
