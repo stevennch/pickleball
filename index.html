@@ -486,10 +486,10 @@
         </div>
       </div>
       <div class="setting">
-        <label>ラウンド数</label>
+        <label>ラウンド数（1ラウンド15分で自動計算）</label>
         <div class="stepper">
           <button id="round-minus" type="button">−</button>
-          <span class="value" id="round-count">8</span>
+          <span class="value" id="round-count">6</span>
           <button id="round-plus" type="button">＋</button>
         </div>
       </div>
@@ -578,7 +578,7 @@
     members: [],       // {id, name, gender?: 'M'|'F', level?: 'adv'|'int'|'beg'|'nov'}
     attending: {},     // id -> true
     courts: 2,
-    rounds: 8,
+    rounds: 6, // 初期値はゲーム時間90分÷15分
     startTime: '10:00',
     courtNumbers: '',
     csUrl: '',
@@ -595,7 +595,7 @@
         state.members = saved.members || [];
         state.attending = saved.attending || {};
         state.courts = saved.courts || 2;
-        state.rounds = saved.rounds || 8;
+        state.rounds = saved.rounds || 6;
         state.startTime = saved.startTime || '10:00';
         state.courtNumbers = saved.courtNumbers || '';
         state.csUrl = saved.csUrl || '';
@@ -945,7 +945,7 @@
         return;
       }
       var u = candidates[idx++];
-      fetchWithTimeout(u, 15000).then(function (text) {
+      fetchWithTimeout(u, 30000).then(function (text) {
         var data = parseChouseisanCsv(text);
         if (data) {
           btn.disabled = false;
@@ -1495,8 +1495,20 @@
     }
   } });
   bindStepper('round-minus', 'round-plus', 'round-count', 'rounds', 1, 20);
-  bindStepper('duration-minus', 'duration-plus', 'duration-value', 'durationMin', 30, 360, { step: 15, format: formatDur });
-  bindStepper('warmup-minus', 'warmup-plus', 'warmup-value', 'warmupMin', 0, 120, { step: 5, format: formatDur });
+
+  // ゲーム時間（所要時間−アップ時間）÷15分から最適なラウンド数を自動計算。
+  // 所要時間・アップ時間を変えるとラウンド数が追従する（手動調整はその後も可能）。
+  function autoRounds() {
+    var gameMin = Math.max(0, state.durationMin - Math.min(state.warmupMin, state.durationMin));
+    return Math.min(20, Math.max(1, Math.floor(gameMin / 15)));
+  }
+  function applyAutoRounds() {
+    state.rounds = autoRounds();
+    document.getElementById('round-count').textContent = state.rounds;
+    save();
+  }
+  bindStepper('duration-minus', 'duration-plus', 'duration-value', 'durationMin', 30, 360, { step: 15, format: formatDur, onChange: applyAutoRounds });
+  bindStepper('warmup-minus', 'warmup-plus', 'warmup-value', 'warmupMin', 0, 120, { step: 5, format: formatDur, onChange: applyAutoRounds });
   startTimeInput.value = state.startTime;
   courtNumbersInput.value = state.courtNumbers;
   syncCourtsFromNumbers();
