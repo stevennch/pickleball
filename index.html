@@ -48,6 +48,34 @@
   .lang-select option { color: var(--text); }
   main { max-width: 720px; margin: 0 auto; padding: 16px; }
 
+  /* タブ */
+  .tabs {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .tabs .tab {
+    flex: 1;
+    max-width: 360px;
+    padding: 12px 8px;
+    background: #fff;
+    color: var(--muted);
+    font-weight: 700;
+    font-size: 0.95rem;
+    border-radius: 0;
+    border-bottom: 3px solid transparent;
+  }
+  .tabs .tab.sel {
+    color: var(--primary-dark);
+    border-bottom-color: var(--primary);
+    background: #f7fcfa;
+  }
+
   .card {
     background: var(--card);
     border: 1px solid var(--border);
@@ -483,7 +511,13 @@
     <option value="vi">Tiếng Việt</option>
   </select>
 </header>
+<nav class="tabs">
+  <button type="button" class="tab sel" id="tab-settings" data-i18n="tabSettings">⚙️ 設定</button>
+  <button type="button" class="tab" id="tab-schedule" data-i18n="tabSchedule">📋 対戦表</button>
+</nav>
 <main>
+
+<div id="view-settings">
 
   <!-- サークル切り替え -->
   <section class="card">
@@ -592,6 +626,10 @@
     <p class="error-msg" id="error-msg"></p>
   </div>
 
+</div><!-- /view-settings -->
+
+<div id="view-schedule" style="display:none">
+
   <!-- 対戦表 -->
   <section class="card">
     <h2 data-i18n="scheduleTitle">当日のスケジュール・対戦表</h2>
@@ -606,6 +644,8 @@
       <tbody id="stats-body"></tbody>
     </table>
   </section>
+
+</div><!-- /view-schedule -->
 
 </main>
 
@@ -657,6 +697,8 @@
   var I18N = {
     ja: {
       appTitle: 'ラケットサークル組み合わせくん',
+      tabSettings: '⚙️ 設定',
+      tabSchedule: '📋 対戦表',
       circleTitle: 'サークル',
       circleHint: 'サークルごとにメンバーや設定が別々に保存されます。',
       circleNewPrompt: '新しいサークル名を入力してください',
@@ -733,6 +775,8 @@
     },
     en: {
       appTitle: 'Racket Circle Matchmaker',
+      tabSettings: '⚙️ Settings',
+      tabSchedule: '📋 Schedule',
       circleTitle: 'Circle',
       circleHint: 'Members and settings are saved separately for each circle.',
       circleNewPrompt: 'Enter a name for the new circle',
@@ -794,6 +838,8 @@
     },
     vi: {
       appTitle: 'Trình xếp trận CLB vợt',
+      tabSettings: '⚙️ Cài đặt',
+      tabSchedule: '📋 Lịch đấu',
       circleTitle: 'Câu lạc bộ',
       circleHint: 'Thành viên và cài đặt được lưu riêng cho từng CLB.',
       circleNewPrompt: 'Nhập tên CLB mới',
@@ -888,6 +934,7 @@
       pairMode: 'fixed', // 'fixed' | 'rotate'
       durationMin: 120,
       warmupMin: 30,
+      lastResult: null,  // 最後に生成した対戦表（リロード後も対戦表タブで見られるように保存）
     };
   }
 
@@ -904,6 +951,7 @@
     base.pairMode = d.pairMode === 'rotate' ? 'rotate' : 'fixed';
     base.durationMin = d.durationMin || 120;
     base.warmupMin = (typeof d.warmupMin === 'number') ? d.warmupMin : 30;
+    base.lastResult = d.lastResult || null;
     return base;
   }
 
@@ -1920,9 +1968,35 @@
     var result = state.pairMode === 'fixed'
       ? generateFixedSchedule(players, state.courts, state.rounds)
       : generateRotateSchedule(players, state.courts, state.rounds);
+    state.lastResult = { players: players, result: result };
+    save();
     renderSchedule(result, players);
-    document.getElementById('schedule').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    switchTab('schedule');
   });
+
+  // ---------- タブ ----------
+  var activeTab = 'settings';
+
+  function switchTab(name) {
+    activeTab = name;
+    document.getElementById('view-settings').style.display = name === 'settings' ? '' : 'none';
+    document.getElementById('view-schedule').style.display = name === 'schedule' ? '' : 'none';
+    document.getElementById('tab-settings').className = 'tab' + (name === 'settings' ? ' sel' : '');
+    document.getElementById('tab-schedule').className = 'tab' + (name === 'schedule' ? ' sel' : '');
+    window.scrollTo(0, 0);
+  }
+
+  document.getElementById('tab-settings').addEventListener('click', function () { switchTab('settings'); });
+  document.getElementById('tab-schedule').addEventListener('click', function () { switchTab('schedule'); });
+
+  // 保存済みの対戦表があれば表示する
+  function renderStoredSchedule() {
+    if (state.lastResult && state.lastResult.result && state.lastResult.players) {
+      renderSchedule(state.lastResult.result, state.lastResult.players);
+    } else {
+      resetSchedule();
+    }
+  }
 
   // ---------- 言語適用・UI更新 ----------
   var langSelect = document.getElementById('lang-select');
@@ -1957,7 +2031,8 @@
     renderCircles();
     refreshValues();
     renderMembers();
-    resetSchedule();
+    renderStoredSchedule();
+    switchTab(state.lastResult ? 'schedule' : 'settings');
     csData = null;
     csChosenIdx = -1;
     csDatesEl.innerHTML = '';
@@ -1971,7 +2046,7 @@
     applyLang();
     refreshValues();
     renderMembers();
-    resetSchedule();
+    renderStoredSchedule();
     renderCsDates();
   });
 
@@ -2004,6 +2079,8 @@
   bindStepper('duration-minus', 'duration-plus', 'duration-value', 'durationMin', 30, 360, { step: 15, format: formatDur, onChange: applyAutoRounds });
   bindStepper('warmup-minus', 'warmup-plus', 'warmup-value', 'warmupMin', 0, 120, { step: 5, format: formatDur, onChange: applyAutoRounds });
   refreshValues();
+  renderStoredSchedule();
+  switchTab(state.lastResult ? 'schedule' : 'settings');
   save();
 })();
 </script>
