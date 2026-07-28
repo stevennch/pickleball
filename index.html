@@ -632,11 +632,6 @@
       <input type="text" id="new-member-name" placeholder="名前を入力" data-i18n-ph="namePh" maxlength="20" autocomplete="off">
       <button type="submit" class="btn-primary" id="add-member-btn" data-i18n="addBtn">追加</button>
     </form>
-    <form class="add-row" id="quick-form" style="margin-top:8px">
-      <input type="number" id="quick-count" min="4" max="40" placeholder="人数" data-i18n-ph="quickPh" inputmode="numeric">
-      <button type="submit" class="btn-ghost" style="white-space:nowrap" data-i18n="quickBtn">人数だけで作成</button>
-    </form>
-    <p class="hint" data-i18n="quickHint">名前を登録しなくても、人数を入れるだけで「1・2・3…」の番号メンバーが作られます。</p>
     <div class="member-list" id="member-list"></div>
     <div class="select-actions">
       <button class="btn-ghost" id="select-all-btn" data-i18n="selectAll">全員選択</button>
@@ -690,6 +685,10 @@
         <input type="text" id="court-numbers" placeholder="例: 3,5" data-i18n-ph="courtNumsPh" inputmode="text" autocomplete="off">
       </div>
       <div class="setting">
+        <label data-i18n="quickCountL">参加メンバー数で作成（任意）</label>
+        <input type="number" id="quick-count" min="0" max="40" placeholder="未使用" data-i18n-ph="quickCountPh" inputmode="numeric" autocomplete="off">
+      </div>
+      <div class="setting">
         <label data-i18n="pairModeL">ペアの組み方</label>
         <div class="seg" id="pair-mode-seg">
           <button type="button" data-mode="fixed" data-i18n="pairFixed">ペア固定</button>
@@ -697,6 +696,7 @@
         </div>
       </div>
     </div>
+    <p class="hint" data-i18n="quickHint">「参加メンバー数で作成」に人数を入れると、メンバー選択の代わりに番号（1〜N）だけで組み合わせを作成します。メンバー管理には登録されません。空欄なら通常どおりメンバー選択を使います。</p>
     <p class="hint" data-i18n="settingsHint">ペアは実力が偏らないよう「上級者×初心者」のようにバランスを取り、なるべく「男女MIX」になるように自動で組まれます（レベル未設定の人は中間扱い）。「ペア固定」は最初に組んだペアのまま最後まで対戦します。奇数人数のときは補欠が1人でき、休憩が均等になるように毎ラウンド誰かと交代で出場します。</p>
   </section>
 
@@ -863,10 +863,10 @@
       importBtn: '取り込む',
       importDone: '「{name}」を取り込みました',
       importErr: '共有リンクを読み取れませんでした',
-      quickPh: '人数',
-      quickBtn: '人数だけで作成',
-      quickHint: '名前を登録しなくても、人数を入れるだけで「1・2・3…」の番号メンバーが作られます。',
-      quickMin: '4人以上の人数を入力してください',
+      quickCountL: '参加メンバー数で作成（任意）',
+      quickCountPh: '未使用',
+      quickHint: '「参加メンバー数で作成」に人数を入れると、メンバー選択の代わりに番号（1〜N）だけで組み合わせを作成します。メンバー管理には登録されません。空欄なら通常どおりメンバー選択を使います。',
+      quickMin: '参加メンバー数は4人以上で入力してください',
       pairNum: 'ペア{n}'
     },
     en: {
@@ -938,10 +938,10 @@
       importBtn: 'Import',
       importDone: 'Imported "{name}".',
       importErr: 'Could not read the share link.',
-      quickPh: 'Player count',
-      quickBtn: 'Create by count',
-      quickHint: 'No names needed — enter a player count to create numbered members (1, 2, 3…).',
-      quickMin: 'Enter at least 4 players.',
+      quickCountL: 'Create by player count (optional)',
+      quickCountPh: 'Not used',
+      quickHint: 'Enter a player count to build the schedule with numbers (1–N) instead of the member list. Nothing is added to Members. Leave it empty to use member selection as usual.',
+      quickMin: 'Player count must be at least 4.',
       pairNum: 'P{n}'
     },
     vi: {
@@ -1013,10 +1013,10 @@
       importBtn: 'Nhập',
       importDone: 'Đã nhập "{name}".',
       importErr: 'Không đọc được liên kết chia sẻ.',
-      quickPh: 'Số người',
-      quickBtn: 'Tạo theo số người',
-      quickHint: 'Không cần nhập tên — chỉ cần nhập số người để tạo thành viên đánh số (1, 2, 3…).',
-      quickMin: 'Nhập ít nhất 4 người.',
+      quickCountL: 'Tạo theo số người chơi (tùy chọn)',
+      quickCountPh: 'Không dùng',
+      quickHint: 'Nhập số người để tạo lịch thi đấu bằng số (1–N) thay vì danh sách thành viên. Không thêm gì vào mục Thành viên. Để trống nếu muốn chọn thành viên như bình thường.',
+      quickMin: 'Số người chơi phải từ 4 trở lên.',
       pairNum: 'C{n}'
     }
   };
@@ -1054,6 +1054,7 @@
       pairMode: 'fixed', // 'fixed' | 'rotate'
       durationMin: 120,
       warmupMin: 30,
+      quickCount: 0,     // 参加メンバー数で作成（0=未使用でメンバー選択を使う）
       lastResult: null,  // 最後に生成した対戦表（リロード後も対戦表タブで見られるように保存）
     };
   }
@@ -1061,8 +1062,12 @@
   function normalizeData(d) {
     var base = defaultData();
     d = d || {};
-    base.members = d.members || [];
-    base.attending = d.attending || {};
+    // 旧「人数だけで作成」機能が作った番号メンバー（autoフラグ）は除去し、
+    // 参加フラグも実在するメンバーのものだけ残す
+    base.members = (d.members || []).filter(function (m) { return !m.auto; });
+    var att = d.attending || {};
+    base.attending = {};
+    base.members.forEach(function (m) { if (att[m.id]) base.attending[m.id] = true; });
     base.courts = d.courts || 2;
     base.rounds = d.rounds || 6;
     base.startTime = d.startTime || '10:00';
@@ -1071,6 +1076,7 @@
     base.pairMode = d.pairMode === 'rotate' ? 'rotate' : 'fixed';
     base.durationMin = d.durationMin || 120;
     base.warmupMin = (typeof d.warmupMin === 'number') ? d.warmupMin : 30;
+    base.quickCount = d.quickCount || 0;
     base.lastResult = d.lastResult || null;
     return base;
   }
@@ -1264,30 +1270,22 @@
     addMember();
   });
 
-  // 人数だけ入力して番号メンバー（1・2・3…）を作成。
-  // 自動作成メンバー（auto付き）だけを増減し、名前登録済みメンバーには触れない。
-  document.getElementById('quick-form').addEventListener('submit', function (e) {
-    e.preventDefault();
-    var n = parseInt(document.getElementById('quick-count').value, 10);
-    if (!n || n < 4) { alert(t('quickMin')); return; }
-    if (n > 40) n = 40;
-
-    var autos = state.members.filter(function (m) { return m.auto; });
-    autos.slice(n).forEach(function (m) {
-      state.members = state.members.filter(function (x) { return x.id !== m.id; });
-      delete state.attending[m.id];
-    });
-    for (var i = autos.length; i < n; i++) {
-      state.members.push({ id: newId(), name: '', auto: true });
-    }
-    // 番号を1..Nに振り直して全員参加に
-    state.members.filter(function (m) { return m.auto; }).forEach(function (m, i) {
-      m.name = String(i + 1);
-      state.attending[m.id] = true;
-    });
+  // 「参加メンバー数で作成」：当日の設定で人数を入れると、メンバー選択の
+  // 代わりに番号（1〜N）のプレーヤーで組み合わせを作る（メンバー管理には登録しない）
+  var quickCountInput = document.getElementById('quick-count');
+  quickCountInput.addEventListener('input', function () {
+    var n = parseInt(quickCountInput.value, 10);
+    state.quickCount = (n && n > 0) ? Math.min(n, 40) : 0;
     save();
-    renderMembers();
   });
+
+  function quickPlayers() {
+    var out = [];
+    for (var i = 1; i <= state.quickCount; i++) {
+      out.push({ id: 'q' + i, name: String(i) });
+    }
+    return out;
+  }
 
   document.getElementById('select-all-btn').addEventListener('click', function () {
     state.members.forEach(function (m) { state.attending[m.id] = true; });
@@ -1610,7 +1608,7 @@
       n: circleName,
       m: d.members.map(packMember),
       a: Object.keys(d.attending),
-      st: [d.courts, d.rounds, d.startTime, d.courtNumbers, d.pairMode === 'rotate' ? 1 : 0, d.durationMin, d.warmupMin],
+      st: [d.courts, d.rounds, d.startTime, d.courtNumbers, d.pairMode === 'rotate' ? 1 : 0, d.durationMin, d.warmupMin, d.quickCount || 0],
       r: null
     };
     var lr = d.lastResult;
@@ -1647,6 +1645,7 @@
     d.pairMode = st[4] ? 'rotate' : 'fixed';
     d.durationMin = st[5] || 120;
     d.warmupMin = (typeof st[6] === 'number') ? st[6] : 30;
+    d.quickCount = st[7] || 0;
     if (payload.r) {
       var players = payload.r.p.map(unpackMember);
       var byIx = function (i) { return players[i]; };
@@ -2301,7 +2300,19 @@
 
   document.getElementById('generate-btn').addEventListener('click', function () {
     errorEl.style.display = 'none';
-    var players = state.members.filter(function (m) { return state.attending[m.id]; });
+
+    // 参加メンバー数が設定されていれば、メンバー選択の代わりに番号プレーヤーを使う
+    var players;
+    if (state.quickCount > 0) {
+      if (state.quickCount < 4) {
+        errorEl.textContent = t('quickMin');
+        errorEl.style.display = 'block';
+        return;
+      }
+      players = quickPlayers();
+    } else {
+      players = state.members.filter(function (m) { return state.attending[m.id]; });
+    }
 
     if (players.length < 4) {
       errorEl.textContent = t('errMin', { n: players.length });
@@ -2373,6 +2384,7 @@
     document.getElementById('warmup-value').textContent = formatDur(state.warmupMin);
     startTimeInput.value = state.startTime;
     courtNumbersInput.value = state.courtNumbers;
+    document.getElementById('quick-count').value = state.quickCount > 0 ? state.quickCount : '';
     document.getElementById('cs-url').value = state.csUrl || '';
     renderPairMode();
   }
