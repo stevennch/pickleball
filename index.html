@@ -34,8 +34,18 @@
     align-items: center;
     gap: 10px;
   }
-  header h1 { font-size: 1.1rem; font-weight: 700; }
+  header h1 { font-size: 1.05rem; font-weight: 700; flex: 1; }
   header .ball { font-size: 1.4rem; }
+  .lang-select {
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 8px;
+    padding: 6px 8px;
+    font-size: 0.85rem;
+    font-family: inherit;
+  }
+  .lang-select option { color: var(--text); }
   main { max-width: 720px; margin: 0 auto; padding: 16px; }
 
   .card {
@@ -63,13 +73,14 @@
     font-weight: 600;
   }
 
-  input[type="text"], input[type="url"], input[type="time"], textarea {
+  input[type="text"], input[type="url"], input[type="time"], textarea, select.box {
     padding: 10px 12px;
     border: 1px solid var(--border);
     border-radius: 8px;
     font-size: 1rem;
     font-family: inherit;
     width: 100%;
+    background: #fff;
   }
   button {
     font-family: inherit;
@@ -95,6 +106,19 @@
   }
   .add-row { display: flex; gap: 8px; }
   .hint { color: var(--muted); font-size: 0.85rem; margin-top: 8px; }
+
+  /* サークル切り替え */
+  .circle-row { display: flex; gap: 8px; align-items: center; }
+  .circle-row select { flex: 1; height: 46px; }
+  .circle-row .icon-btn2 {
+    width: 46px; height: 46px;
+    background: #fff;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+  .circle-row .icon-btn2:hover { border-color: var(--primary); color: var(--primary); }
 
   /* 調整さん取り込み */
   .cs-status {
@@ -452,55 +476,72 @@
 <body>
 <header>
   <span class="ball">🎾</span>
-  <h1>ラケットサークル組み合わせくん</h1>
+  <h1 id="app-title">ラケットサークル組み合わせくん</h1>
+  <select class="lang-select" id="lang-select" aria-label="Language">
+    <option value="ja">日本語</option>
+    <option value="en">English</option>
+    <option value="vi">Tiếng Việt</option>
+  </select>
 </header>
 <main>
 
-  <!-- 調整さん取り込み -->
+  <!-- サークル切り替え -->
   <section class="card">
-    <h2>調整さんから参加者を取り込み</h2>
+    <h2><span data-i18n="circleTitle">サークル</span></h2>
+    <div class="circle-row">
+      <select class="box" id="circle-select"></select>
+      <button type="button" class="icon-btn2" id="circle-add" title="＋">＋</button>
+      <button type="button" class="icon-btn2" id="circle-rename" title="✎">✎</button>
+      <button type="button" class="icon-btn2" id="circle-del" title="×">×</button>
+    </div>
+    <p class="hint" data-i18n="circleHint">サークルごとにメンバーや設定が別々に保存されます。</p>
+  </section>
+
+  <!-- 調整さん取り込み（日本語のみ表示） -->
+  <section class="card" id="cs-card">
+    <h2 data-i18n="csTitle">調整さんから参加者を取り込み</h2>
     <form class="add-row" id="cs-form">
-      <input type="url" id="cs-url" placeholder="調整さんのURLを貼り付け" inputmode="url">
-      <button type="submit" class="btn-primary" id="cs-import-btn">取り込む</button>
+      <input type="url" id="cs-url" placeholder="調整さんのURLを貼り付け" data-i18n-ph="csPlaceholder" inputmode="url">
+      <button type="submit" class="btn-primary" id="cs-import-btn" data-i18n="csImport">取り込む</button>
     </form>
     <p class="cs-status" id="cs-status"></p>
     <div class="cs-dates" id="cs-dates"></div>
     <div class="cs-fallback" id="cs-fallback">
-      <p class="hint">自動取得できませんでした。下のリンクから出欠表（CSV）を開き、内容を全部コピーして貼り付けてください。</p>
-      <a class="open-csv" id="cs-csv-link" href="#" target="_blank" rel="noopener">📄 出欠表CSVを開く</a>
-      <textarea id="cs-paste" placeholder="ここにCSVの内容を貼り付け"></textarea>
+      <p class="hint" data-i18n="csFallbackHint">自動取得できませんでした。下のリンクから出欠表（CSV）を開き、内容を全部コピーして貼り付けてください。</p>
+      <a class="open-csv" id="cs-csv-link" href="#" target="_blank" rel="noopener" data-i18n="csOpenCsv">📄 出欠表CSVを開く</a>
+      <textarea id="cs-paste" placeholder="ここにCSVの内容を貼り付け" data-i18n-ph="csPastePh"></textarea>
       <div class="select-actions">
-        <button class="btn-primary" id="cs-parse-btn" type="button">貼り付けた内容を取り込む</button>
+        <button class="btn-primary" id="cs-parse-btn" type="button" data-i18n="csParseBtn">貼り付けた内容を取り込む</button>
       </div>
     </div>
-    <p class="hint">回答者全員（×の人も含む）をメンバーとして取り込み、一番◯が多い日程の◯の人だけを参加に設定します。取り込んだ名前は次回以降も残ります。日程は下のボタンで切り替えできます。</p>
+    <p class="hint" data-i18n="csHint">回答者全員（×の人も含む）をメンバーとして取り込み、一番◯が多い日程の◯の人だけを参加に設定します。取り込んだ名前は次回以降も残ります。日程は下のボタンで切り替えできます。</p>
   </section>
 
   <!-- メンバー管理 -->
   <section class="card">
-    <h2>メンバー管理 <span class="badge" id="attend-count">参加 0人</span></h2>
+    <h2><span data-i18n="membersTitle">メンバー管理</span> <span class="badge" id="attend-count"></span></h2>
     <form class="add-row" id="add-member-form">
-      <input type="text" id="new-member-name" placeholder="名前を入力" maxlength="20" autocomplete="off">
-      <button type="submit" class="btn-primary" id="add-member-btn">追加</button>
+      <input type="text" id="new-member-name" placeholder="名前を入力" data-i18n-ph="namePh" maxlength="20" autocomplete="off">
+      <button type="submit" class="btn-primary" id="add-member-btn" data-i18n="addBtn">追加</button>
     </form>
     <div class="member-list" id="member-list"></div>
     <div class="select-actions">
-      <button class="btn-ghost" id="select-all-btn">全員選択</button>
-      <button class="btn-ghost" id="clear-all-btn">選択解除</button>
+      <button class="btn-ghost" id="select-all-btn" data-i18n="selectAll">全員選択</button>
+      <button class="btn-ghost" id="clear-all-btn" data-i18n="clearAll">選択解除</button>
     </div>
-    <p class="hint">名前をタップして当日の参加者を選択（緑＝参加）。「✎」で性別・レベルを設定、「×」でメンバー削除。</p>
+    <p class="hint" data-i18n="memberHint">名前をタップして当日の参加者を選択（緑＝参加）。「✎」で性別・レベルを設定、「×」でメンバー削除。</p>
   </section>
 
   <!-- 設定 -->
   <section class="card">
-    <h2>当日の設定</h2>
+    <h2 data-i18n="settingsTitle">当日の設定</h2>
     <div class="settings-grid">
       <div class="setting">
-        <label>開始時刻</label>
+        <label data-i18n="startTimeL">開始時刻</label>
         <input type="time" id="start-time" value="10:00">
       </div>
       <div class="setting">
-        <label>所要時間</label>
+        <label data-i18n="durationL">所要時間</label>
         <div class="stepper">
           <button id="duration-minus" type="button">−</button>
           <span class="value" id="duration-value">2時間</span>
@@ -508,7 +549,7 @@
         </div>
       </div>
       <div class="setting">
-        <label>アップ時間（フリー練習）</label>
+        <label data-i18n="warmupL">アップ時間（フリー練習）</label>
         <div class="stepper">
           <button id="warmup-minus" type="button">−</button>
           <span class="value" id="warmup-value">30分</span>
@@ -516,7 +557,7 @@
         </div>
       </div>
       <div class="setting">
-        <label>ラウンド数（1ラウンド15分で自動計算）</label>
+        <label data-i18n="roundsL">ラウンド数（1ラウンド15分で自動計算）</label>
         <div class="stepper">
           <button id="round-minus" type="button">−</button>
           <span class="value" id="round-count">6</span>
@@ -524,7 +565,7 @@
         </div>
       </div>
       <div class="setting">
-        <label>コート数</label>
+        <label data-i18n="courtsL">コート数</label>
         <div class="stepper">
           <button id="court-minus" type="button">−</button>
           <span class="value" id="court-count">2</span>
@@ -532,36 +573,36 @@
         </div>
       </div>
       <div class="setting">
-        <label>予約コート番号（任意・カンマ区切り）</label>
-        <input type="text" id="court-numbers" placeholder="例: 3,5" inputmode="text" autocomplete="off">
+        <label data-i18n="courtNumsL">予約コート番号（任意・カンマ区切り）</label>
+        <input type="text" id="court-numbers" placeholder="例: 3,5" data-i18n-ph="courtNumsPh" inputmode="text" autocomplete="off">
       </div>
       <div class="setting">
-        <label>ペアの組み方</label>
+        <label data-i18n="pairModeL">ペアの組み方</label>
         <div class="seg" id="pair-mode-seg">
-          <button type="button" data-mode="fixed">ペア固定</button>
-          <button type="button" data-mode="rotate">毎回シャッフル</button>
+          <button type="button" data-mode="fixed" data-i18n="pairFixed">ペア固定</button>
+          <button type="button" data-mode="rotate" data-i18n="pairRotate">毎回シャッフル</button>
         </div>
       </div>
     </div>
-    <p class="hint">ペアは実力が偏らないよう「上級者×初心者」のようにバランスを取り、なるべく「男女MIX」になるように自動で組まれます（レベル未設定の人は中間扱い）。「ペア固定」は最初に組んだペアのまま最後まで対戦します。奇数人数のときは補欠が1人でき、休憩が均等になるように毎ラウンド誰かと交代で出場します。</p>
+    <p class="hint" data-i18n="settingsHint">ペアは実力が偏らないよう「上級者×初心者」のようにバランスを取り、なるべく「男女MIX」になるように自動で組まれます（レベル未設定の人は中間扱い）。「ペア固定」は最初に組んだペアのまま最後まで対戦します。奇数人数のときは補欠が1人でき、休憩が均等になるように毎ラウンド誰かと交代で出場します。</p>
   </section>
 
   <div class="generate-wrap">
-    <button class="btn-generate" id="generate-btn">🎾 組み合わせを作成</button>
+    <button class="btn-generate" id="generate-btn" data-i18n="generateBtn">🎾 組み合わせを作成</button>
     <p class="error-msg" id="error-msg"></p>
   </div>
 
   <!-- 対戦表 -->
   <section class="card">
-    <h2>当日のスケジュール・対戦表</h2>
-    <div id="schedule"><p class="empty-note">参加者とコートを設定して「組み合わせを作成」を押してください</p></div>
+    <h2 data-i18n="scheduleTitle">当日のスケジュール・対戦表</h2>
+    <div id="schedule"><p class="empty-note" data-i18n="emptyNote">参加者とコートを設定して「組み合わせを作成」を押してください</p></div>
   </section>
 
   <!-- 集計 -->
   <section class="card" id="stats-card" style="display:none">
-    <h2>試合数の集計</h2>
+    <h2 data-i18n="statsTitle">試合数の集計</h2>
     <table class="stats">
-      <thead><tr><th>名前</th><th style="text-align:center">試合数</th><th style="text-align:center">休憩数</th></tr></thead>
+      <thead><tr><th data-i18n="statName">名前</th><th style="text-align:center" data-i18n="statGames">試合数</th><th style="text-align:center" data-i18n="statRests">休憩数</th></tr></thead>
       <tbody id="stats-body"></tbody>
     </table>
   </section>
@@ -569,7 +610,7 @@
 </main>
 
 <footer class="site-footer">
-  <p>開発者:
+  <p><span data-i18n="developer">開発者:</span>
     <a href="https://github.com/stevennch" target="_blank" rel="noopener">GitHub</a>
     ・
     <a href="https://x.com/stevennch" target="_blank" rel="noopener">X (Twitter)</a>
@@ -580,20 +621,20 @@
 <div class="overlay" id="edit-overlay">
   <div class="modal">
     <h3 id="edit-name">メンバー設定</h3>
-    <div class="field-label">性別</div>
+    <div class="field-label" data-i18n="genderL">性別</div>
     <div class="opt-row" id="edit-gender">
-      <button type="button" class="opt" data-v="M">男性</button>
-      <button type="button" class="opt" data-v="F">女性</button>
+      <button type="button" class="opt" data-v="M" data-i18n="male">男性</button>
+      <button type="button" class="opt" data-v="F" data-i18n="female">女性</button>
     </div>
-    <div class="field-label">レベル</div>
+    <div class="field-label" data-i18n="levelL">レベル</div>
     <div class="opt-row" id="edit-level">
-      <button type="button" class="opt" data-v="adv">上級者</button>
-      <button type="button" class="opt" data-v="int">中級者</button>
-      <button type="button" class="opt" data-v="beg">初級者</button>
-      <button type="button" class="opt" data-v="nov">初心者</button>
+      <button type="button" class="opt" data-v="adv" data-i18n="lv_adv">上級者</button>
+      <button type="button" class="opt" data-v="int" data-i18n="lv_int">中級者</button>
+      <button type="button" class="opt" data-v="beg" data-i18n="lv_beg">初級者</button>
+      <button type="button" class="opt" data-v="nov" data-i18n="lv_nov">初心者</button>
     </div>
     <div class="modal-actions">
-      <button type="button" class="btn-primary" id="edit-close">完了</button>
+      <button type="button" class="btn-primary" id="edit-close" data-i18n="done">完了</button>
     </div>
   </div>
 </div>
@@ -602,64 +643,376 @@
 (function () {
   'use strict';
 
-  var STORAGE_KEY = 'pickleball_app_v1';
+  var STORAGE_KEY_V1 = 'pickleball_app_v1';
+  var STORAGE_KEY = 'pickleball_app_v2';
 
   // 調整さんCSV中継（Google Apps Script）のURL。
   // 調整さんはCORS未対応のため、ブラウザから直接取得できない環境では
   // この中継経由で出欠データを取得する。空文字なら直接取得とプロキシのみ試す。
   var RELAY_URL = 'https://script.google.com/macros/s/AKfycbwYr_Vv_TwIrjCml0UbVMoZJ1ikTASR6yQ_I1mfI8tgV86OtG4oCwNOMrlnFI03iZcX/exec';
 
-  var LEVELS = { adv: '上級', int: '中級', beg: '初級', nov: '初心' };
   var LEVEL_VAL = { adv: 3, int: 2, beg: 1, nov: 0 };
 
-  var state = {
-    members: [],       // {id, name, gender?: 'M'|'F', level?: 'adv'|'int'|'beg'|'nov'}
-    attending: {},     // id -> true
-    courts: 2,
-    rounds: 6, // 初期値はゲーム時間90分÷15分
-    startTime: '10:00',
-    courtNumbers: '',
-    csUrl: '',
-    pairMode: 'fixed', // 'fixed' | 'rotate'
-    durationMin: 120,  // 所要時間（分）
-    warmupMin: 30,     // アップ時間（分）
+  // ---------- 多言語 ----------
+  var I18N = {
+    ja: {
+      appTitle: 'ラケットサークル組み合わせくん',
+      circleTitle: 'サークル',
+      circleHint: 'サークルごとにメンバーや設定が別々に保存されます。',
+      circleNewPrompt: '新しいサークル名を入力してください',
+      circleRenamePrompt: 'サークル名を変更',
+      circleDelConfirm: '「{name}」を削除しますか？メンバーや設定も消えます。',
+      circleLastErr: '最後のサークルは削除できません',
+      circleDefault: 'マイサークル',
+      csTitle: '調整さんから参加者を取り込み',
+      csPlaceholder: '調整さんのURLを貼り付け',
+      csImport: '取り込む',
+      csHint: '回答者全員（×の人も含む）をメンバーとして取り込み、一番◯が多い日程の◯の人だけを参加に設定します。取り込んだ名前は次回以降も残ります。日程は下のボタンで切り替えできます。',
+      csFallbackHint: '自動取得できませんでした。下のリンクから出欠表（CSV）を開き、内容を全部コピーして貼り付けてください。',
+      csOpenCsv: '📄 出欠表CSVを開く',
+      csPastePh: 'ここにCSVの内容を貼り付け',
+      csParseBtn: '貼り付けた内容を取り込む',
+      csFetching: '出欠データを取得中…',
+      csFailed: '自動取得できませんでした。下の手順で貼り付けてください。',
+      csUrlErr: '調整さんのURLが正しくありません（例: https://chouseisan.com/s?h=xxxx）',
+      csParseErr: '貼り付けた内容を読み取れませんでした。CSVの内容をそのまま貼り付けてください。',
+      csApplied: '「{date}」の◯ {n}人を参加に設定しました',
+      csAddedSuffix: '（回答者から新規メンバー {n}人を追加）',
+      csMaru: '◯ {n}人',
+      membersTitle: 'メンバー管理',
+      attendCount: '参加 {n}人',
+      namePh: '名前を入力',
+      addBtn: '追加',
+      selectAll: '全員選択',
+      clearAll: '選択解除',
+      memberHint: '名前をタップして当日の参加者を選択（緑＝参加）。「✎」で性別・レベルを設定、「×」でメンバー削除。',
+      dupName: '同じ名前のメンバーがいます',
+      confirmDelete: '「{name}」を削除しますか？',
+      editAria: '{name}の設定',
+      delAria: '{name}を削除',
+      settingsTitle: '当日の設定',
+      startTimeL: '開始時刻',
+      durationL: '所要時間',
+      warmupL: 'アップ時間（フリー練習）',
+      roundsL: 'ラウンド数（1ラウンド15分で自動計算）',
+      courtsL: 'コート数',
+      courtNumsL: '予約コート番号（任意・カンマ区切り）',
+      courtNumsPh: '例: 3,5',
+      pairModeL: 'ペアの組み方',
+      pairFixed: 'ペア固定',
+      pairRotate: '毎回シャッフル',
+      settingsHint: 'ペアは実力が偏らないよう「上級者×初心者」のようにバランスを取り、なるべく「男女MIX」になるように自動で組まれます（レベル未設定の人は中間扱い）。「ペア固定」は最初に組んだペアのまま最後まで対戦します。奇数人数のときは補欠が1人でき、休憩が均等になるように毎ラウンド誰かと交代で出場します。',
+      generateBtn: '🎾 組み合わせを作成',
+      errMin: 'ダブルスには最低4人の参加者が必要です（現在 {n}人）',
+      errWarmup: 'アップ時間が所要時間以上になっています。設定を見直してください。',
+      scheduleTitle: '当日のスケジュール・対戦表',
+      emptyNote: '参加者とコートを設定して「組み合わせを作成」を押してください',
+      warmupDesc: '🏃 フリー練習・アップ',
+      gamesDesc: '🎾 ゲーム（総当たり {n}ラウンド）',
+      courtNotice: '📢 参加{p}人ではダブルス同時{u}試合が上限のため、{e}面は空きコートになります（フリー練習などにどうぞ）。',
+      fixedPairsT: '🤝 固定ペア',
+      subNote: '（補欠・交代出場）',
+      round: 'ラウンド {n}',
+      court: 'コート{n}',
+      restRow: '☕ 休憩：{names}',
+      emptyCourt: '空きコート',
+      listJoin: '、',
+      pairJoin: '・',
+      statsTitle: '試合数の集計',
+      statName: '名前',
+      statGames: '試合数',
+      statRests: '休憩数',
+      genderL: '性別',
+      levelL: 'レベル',
+      male: '男性',
+      female: '女性',
+      done: '完了',
+      lv_adv: '上級者', lv_int: '中級者', lv_beg: '初級者', lv_nov: '初心者',
+      lvS_adv: '上級', lvS_int: '中級', lvS_beg: '初級', lvS_nov: '初心',
+      developer: '開発者:'
+    },
+    en: {
+      appTitle: 'Racket Circle Matchmaker',
+      circleTitle: 'Circle',
+      circleHint: 'Members and settings are saved separately for each circle.',
+      circleNewPrompt: 'Enter a name for the new circle',
+      circleRenamePrompt: 'Rename circle',
+      circleDelConfirm: 'Delete "{name}"? Its members and settings will be lost.',
+      circleLastErr: 'The last circle cannot be deleted.',
+      circleDefault: 'My Circle',
+      membersTitle: 'Members',
+      attendCount: '{n} joining',
+      namePh: 'Enter a name',
+      addBtn: 'Add',
+      selectAll: 'Select all',
+      clearAll: 'Clear',
+      memberHint: 'Tap a name to toggle attendance (green = joining). Use ✎ to set gender/level, × to remove a member.',
+      dupName: 'A member with this name already exists.',
+      confirmDelete: 'Delete "{name}"?',
+      editAria: 'Edit {name}',
+      delAria: 'Remove {name}',
+      settingsTitle: 'Session settings',
+      startTimeL: 'Start time',
+      durationL: 'Total duration',
+      warmupL: 'Warm-up time (free practice)',
+      roundsL: 'Rounds (auto: 15 min per round)',
+      courtsL: 'Courts',
+      courtNumsL: 'Reserved court numbers (optional, comma-separated)',
+      courtNumsPh: 'e.g. 3,5',
+      pairModeL: 'Pairing mode',
+      pairFixed: 'Fixed pairs',
+      pairRotate: 'Shuffle each round',
+      settingsHint: 'Pairs are balanced by skill (e.g. advanced × new player) and mixed by gender where possible (players without a level count as average). "Fixed pairs" keeps the same pairs all day. With an odd number of players, one substitute rotates in every round so rests stay even.',
+      generateBtn: '🎾 Create schedule',
+      errMin: 'Doubles needs at least 4 players (currently {n}).',
+      errWarmup: 'Warm-up time must be shorter than the total duration.',
+      scheduleTitle: 'Schedule & matches',
+      emptyNote: 'Choose players and courts, then press "Create schedule".',
+      warmupDesc: '🏃 Free practice & warm-up',
+      gamesDesc: '🎾 Games ({n} rounds)',
+      courtNotice: '📢 With {p} players, at most {u} matches can run at once — {e} court(s) will be free (great for extra practice).',
+      fixedPairsT: '🤝 Fixed pairs',
+      subNote: '(substitute — rotates in)',
+      round: 'Round {n}',
+      court: 'Court {n}',
+      restRow: '☕ Resting: {names}',
+      emptyCourt: 'Free court',
+      listJoin: ', ',
+      pairJoin: ' & ',
+      statsTitle: 'Game totals',
+      statName: 'Name',
+      statGames: 'Games',
+      statRests: 'Rests',
+      genderL: 'Gender',
+      levelL: 'Level',
+      male: 'Male',
+      female: 'Female',
+      done: 'Done',
+      lv_adv: 'Advanced', lv_int: 'Intermediate', lv_beg: 'Beginner', lv_nov: 'New player',
+      lvS_adv: 'Adv', lvS_int: 'Int', lvS_beg: 'Beg', lvS_nov: 'New',
+      developer: 'Developer:'
+    },
+    vi: {
+      appTitle: 'Trình xếp trận CLB vợt',
+      circleTitle: 'Câu lạc bộ',
+      circleHint: 'Thành viên và cài đặt được lưu riêng cho từng CLB.',
+      circleNewPrompt: 'Nhập tên CLB mới',
+      circleRenamePrompt: 'Đổi tên CLB',
+      circleDelConfirm: 'Xóa "{name}"? Thành viên và cài đặt sẽ bị mất.',
+      circleLastErr: 'Không thể xóa CLB cuối cùng.',
+      circleDefault: 'CLB của tôi',
+      membersTitle: 'Thành viên',
+      attendCount: '{n} tham gia',
+      namePh: 'Nhập tên',
+      addBtn: 'Thêm',
+      selectAll: 'Chọn tất cả',
+      clearAll: 'Bỏ chọn',
+      memberHint: 'Chạm vào tên để chọn người tham gia hôm nay (xanh = tham gia). Nhấn ✎ để đặt giới tính/trình độ, × để xóa thành viên.',
+      dupName: 'Đã có thành viên trùng tên.',
+      confirmDelete: 'Xóa "{name}"?',
+      editAria: 'Cài đặt cho {name}',
+      delAria: 'Xóa {name}',
+      settingsTitle: 'Cài đặt buổi chơi',
+      startTimeL: 'Giờ bắt đầu',
+      durationL: 'Tổng thời gian',
+      warmupL: 'Thời gian khởi động (tập tự do)',
+      roundsL: 'Số vòng (tự tính: 15 phút/vòng)',
+      courtsL: 'Số sân',
+      courtNumsL: 'Số sân đã đặt (tùy chọn, cách nhau bằng dấu phẩy)',
+      courtNumsPh: 'VD: 3,5',
+      pairModeL: 'Cách ghép cặp',
+      pairFixed: 'Cặp cố định',
+      pairRotate: 'Xáo trộn mỗi vòng',
+      settingsHint: 'Các cặp được cân bằng trình độ (VD: giỏi × mới chơi) và ưu tiên nam nữ đánh cùng nhau (chưa đặt trình độ thì tính là trung bình). "Cặp cố định" giữ nguyên cặp suốt buổi. Nếu số người lẻ, sẽ có 1 người dự bị thay phiên vào sân mỗi vòng để số lần nghỉ đều nhau.',
+      generateBtn: '🎾 Tạo lịch thi đấu',
+      errMin: 'Đánh đôi cần ít nhất 4 người (hiện tại {n}).',
+      errWarmup: 'Thời gian khởi động phải ngắn hơn tổng thời gian.',
+      scheduleTitle: 'Lịch trình & trận đấu',
+      emptyNote: 'Chọn người chơi và số sân, sau đó nhấn "Tạo lịch thi đấu".',
+      warmupDesc: '🏃 Khởi động & tập tự do',
+      gamesDesc: '🎾 Thi đấu ({n} vòng)',
+      courtNotice: '📢 Với {p} người, tối đa {u} trận cùng lúc — {e} sân sẽ trống (có thể dùng để tập thêm).',
+      fixedPairsT: '🤝 Cặp cố định',
+      subNote: '(dự bị — thay phiên vào sân)',
+      round: 'Vòng {n}',
+      court: 'Sân {n}',
+      restRow: '☕ Nghỉ: {names}',
+      emptyCourt: 'Sân trống',
+      listJoin: ', ',
+      pairJoin: ' & ',
+      statsTitle: 'Thống kê số trận',
+      statName: 'Tên',
+      statGames: 'Số trận',
+      statRests: 'Số lần nghỉ',
+      genderL: 'Giới tính',
+      levelL: 'Trình độ',
+      male: 'Nam',
+      female: 'Nữ',
+      done: 'Xong',
+      lv_adv: 'Giỏi', lv_int: 'Khá', lv_beg: 'Trung bình', lv_nov: 'Mới chơi',
+      lvS_adv: 'Giỏi', lvS_int: 'Khá', lvS_beg: 'TB', lvS_nov: 'Mới',
+      developer: 'Nhà phát triển:'
+    }
   };
+
+  var lang = 'ja';
+
+  function t(key, params) {
+    var s = (I18N[lang] && I18N[lang][key]) !== undefined ? I18N[lang][key] : I18N.ja[key];
+    if (s === undefined) s = key;
+    if (params) {
+      Object.keys(params).forEach(function (k) {
+        s = s.split('{' + k + '}').join(params[k]);
+      });
+    }
+    return s;
+  }
+
+  function detectLang() {
+    var nl = (navigator.language || 'en').toLowerCase();
+    if (nl.indexOf('ja') === 0) return 'ja';
+    if (nl.indexOf('vi') === 0) return 'vi';
+    return 'en';
+  }
+
+  // ---------- データ（サークルごとの部屋） ----------
+  function defaultData() {
+    return {
+      members: [],       // {id, name, gender?: 'M'|'F', level?: 'adv'|'int'|'beg'|'nov'}
+      attending: {},     // id -> true
+      courts: 2,
+      rounds: 6,
+      startTime: '10:00',
+      courtNumbers: '',
+      csUrl: '',
+      pairMode: 'fixed', // 'fixed' | 'rotate'
+      durationMin: 120,
+      warmupMin: 30,
+    };
+  }
+
+  function normalizeData(d) {
+    var base = defaultData();
+    d = d || {};
+    base.members = d.members || [];
+    base.attending = d.attending || {};
+    base.courts = d.courts || 2;
+    base.rounds = d.rounds || 6;
+    base.startTime = d.startTime || '10:00';
+    base.courtNumbers = d.courtNumbers || '';
+    base.csUrl = d.csUrl || '';
+    base.pairMode = d.pairMode === 'rotate' ? 'rotate' : 'fixed';
+    base.durationMin = d.durationMin || 120;
+    base.warmupMin = (typeof d.warmupMin === 'number') ? d.warmupMin : 30;
+    return base;
+  }
+
+  function newId() {
+    return Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+  }
+
+  var root = { lang: null, activeId: null, circles: [] };
+  var state = defaultData();
+
+  function activeCircle() {
+    return root.circles.filter(function (c) { return c.id === root.activeId; })[0];
+  }
 
   function load() {
     try {
-      var raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        var saved = JSON.parse(raw);
-        state.members = saved.members || [];
-        state.attending = saved.attending || {};
-        state.courts = saved.courts || 2;
-        state.rounds = saved.rounds || 6;
-        state.startTime = saved.startTime || '10:00';
-        state.courtNumbers = saved.courtNumbers || '';
-        state.csUrl = saved.csUrl || '';
-        state.pairMode = saved.pairMode === 'rotate' ? 'rotate' : 'fixed';
-        state.durationMin = saved.durationMin || 120;
-        state.warmupMin = (typeof saved.warmupMin === 'number') ? saved.warmupMin : 30;
+      var rawV2 = localStorage.getItem(STORAGE_KEY);
+      if (rawV2) {
+        root = JSON.parse(rawV2);
+        if (!root.circles || root.circles.length === 0) throw new Error('empty');
+      } else {
+        var rawV1 = localStorage.getItem(STORAGE_KEY_V1);
+        var firstData = rawV1 ? normalizeData(JSON.parse(rawV1)) : defaultData();
+        root = { lang: null, activeId: null, circles: [{ id: newId(), name: '', data: firstData }] };
+        root.activeId = root.circles[0].id;
       }
-    } catch (e) { /* 破損時は初期状態 */ }
+    } catch (e) {
+      root = { lang: null, activeId: null, circles: [{ id: newId(), name: '', data: defaultData() }] };
+      root.activeId = root.circles[0].id;
+    }
+    if (!activeCircle()) root.activeId = root.circles[0].id;
+    lang = root.lang || detectLang();
+    if (!I18N[lang]) lang = 'en';
+    root.circles.forEach(function (c) { if (!c.name) c.name = t('circleDefault'); });
+    state = normalizeData(activeCircle().data);
   }
 
   function save() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    var c = activeCircle();
+    if (c) c.data = state;
+    root.lang = lang;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(root));
   }
 
   function shuffle(arr) {
     var a = arr.slice();
     for (var i = a.length - 1; i > 0; i--) {
       var j = Math.floor(Math.random() * (i + 1));
-      var t = a[i]; a[i] = a[j]; a[j] = t;
+      var t2 = a[i]; a[i] = a[j]; a[j] = t2;
     }
     return a;
   }
 
-  function newId() {
-    return Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+  // ---------- サークルUI ----------
+  var circleSelect = document.getElementById('circle-select');
+
+  function renderCircles() {
+    circleSelect.innerHTML = '';
+    root.circles.forEach(function (c) {
+      var opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = c.name;
+      if (c.id === root.activeId) opt.selected = true;
+      circleSelect.appendChild(opt);
+    });
   }
+
+  circleSelect.addEventListener('change', function () {
+    var c = activeCircle();
+    if (c) c.data = state; // 現在の状態を保存してから切り替え
+    root.activeId = circleSelect.value;
+    state = normalizeData(activeCircle().data);
+    save();
+    refreshAll();
+  });
+
+  document.getElementById('circle-add').addEventListener('click', function () {
+    var name = prompt(t('circleNewPrompt'));
+    if (!name || !name.trim()) return;
+    var c = activeCircle();
+    if (c) c.data = state;
+    var nc = { id: newId(), name: name.trim(), data: defaultData() };
+    root.circles.push(nc);
+    root.activeId = nc.id;
+    state = nc.data;
+    save();
+    refreshAll();
+  });
+
+  document.getElementById('circle-rename').addEventListener('click', function () {
+    var c = activeCircle();
+    if (!c) return;
+    var name = prompt(t('circleRenamePrompt'), c.name);
+    if (!name || !name.trim()) return;
+    c.name = name.trim();
+    save();
+    renderCircles();
+  });
+
+  document.getElementById('circle-del').addEventListener('click', function () {
+    if (root.circles.length <= 1) { alert(t('circleLastErr')); return; }
+    var c = activeCircle();
+    if (!confirm(t('circleDelConfirm', { name: c.name }))) return;
+    root.circles = root.circles.filter(function (x) { return x.id !== c.id; });
+    root.activeId = root.circles[0].id;
+    state = normalizeData(activeCircle().data);
+    save();
+    refreshAll();
+  });
 
   // ---------- メンバー管理 ----------
   var memberListEl = document.getElementById('member-list');
@@ -692,7 +1045,7 @@
       if (m.level) {
         var lv = document.createElement('span');
         lv.className = 'tag lv';
-        lv.textContent = LEVELS[m.level];
+        lv.textContent = t('lvS_' + m.level);
         chip.appendChild(lv);
       }
 
@@ -700,7 +1053,7 @@
       edit.className = 'icon-btn';
       edit.type = 'button';
       edit.textContent = '✎';
-      edit.setAttribute('aria-label', m.name + 'の設定');
+      edit.setAttribute('aria-label', t('editAria', { name: m.name }));
       edit.addEventListener('click', function () { openEdit(m.id); });
       chip.appendChild(edit);
 
@@ -708,9 +1061,9 @@
       del.className = 'icon-btn del';
       del.type = 'button';
       del.textContent = '×';
-      del.setAttribute('aria-label', m.name + 'を削除');
+      del.setAttribute('aria-label', t('delAria', { name: m.name }));
       del.addEventListener('click', function () {
-        if (!confirm('「' + m.name + '」を削除しますか？')) return;
+        if (!confirm(t('confirmDelete', { name: m.name }))) return;
         state.members = state.members.filter(function (x) { return x.id !== m.id; });
         delete state.attending[m.id];
         save();
@@ -721,14 +1074,14 @@
       memberListEl.appendChild(chip);
     });
     var count = Object.keys(state.attending).length;
-    attendCountEl.textContent = '参加 ' + count + '人';
+    attendCountEl.textContent = t('attendCount', { n: count });
   }
 
   function addMember() {
     var name = nameInput.value.trim();
     if (!name) return;
     var dup = state.members.some(function (m) { return m.name === name; });
-    if (dup) { alert('同じ名前のメンバーがいます'); return; }
+    if (dup) { alert(t('dupName')); return; }
     var member = { id: newId(), name: name };
     state.members.push(member);
     state.attending[member.id] = true;
@@ -843,8 +1196,8 @@
   }
 
   function isMaru(mark) {
-    var t = (mark || '').trim();
-    return t === '◯' || t === '○' || t === '⭕' || t === 'O' || t === 'o';
+    var m2 = (mark || '').trim();
+    return m2 === '◯' || m2 === '○' || m2 === '⭕' || m2 === 'O' || m2 === 'o';
   }
 
   function parseChouseisanCsv(text) {
@@ -900,8 +1253,8 @@
     renderMembers();
     renderCsDates();
 
-    var msg = '「' + csData.dates[di] + '」の◯ ' + maruCount + '人を参加に設定しました';
-    if (added > 0) msg += '（回答者から新規メンバー ' + added + '人を追加）';
+    var msg = t('csApplied', { date: csData.dates[di], n: maruCount });
+    if (added > 0) msg += t('csAddedSuffix', { n: added });
     setCsStatus('ok', msg);
   }
 
@@ -920,7 +1273,7 @@
       label.textContent = d;
       var cnt = document.createElement('span');
       cnt.className = 'cnt';
-      cnt.textContent = '◯ ' + counts[di] + '人';
+      cnt.textContent = t('csMaru', { n: counts[di] });
       b.appendChild(label);
       b.appendChild(cnt);
       b.addEventListener('click', function () { applyCsDate(di); });
@@ -951,7 +1304,7 @@
     var url = document.getElementById('cs-url').value.trim();
     var hash = extractHash(url);
     if (!hash) {
-      setCsStatus('err', '調整さんのURLが正しくありません（例: https://chouseisan.com/s?h=xxxx）');
+      setCsStatus('err', t('csUrlErr'));
       return;
     }
     state.csUrl = url;
@@ -970,7 +1323,7 @@
       'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(csvUrl)
     );
 
-    setCsStatus('info', '出欠データを取得中…');
+    setCsStatus('info', t('csFetching'));
     var btn = document.getElementById('cs-import-btn');
     btn.disabled = true;
 
@@ -978,7 +1331,7 @@
     function tryNext() {
       if (idx >= candidates.length) {
         btn.disabled = false;
-        setCsStatus('err', '自動取得できませんでした。下の手順で貼り付けてください。');
+        setCsStatus('err', t('csFailed'));
         csFallback.classList.add('show');
         return;
       }
@@ -1005,7 +1358,7 @@
     var text = document.getElementById('cs-paste').value;
     var data = parseChouseisanCsv(text);
     if (!data) {
-      setCsStatus('err', '貼り付けた内容を読み取れませんでした。CSVの内容をそのまま貼り付けてください。');
+      setCsStatus('err', t('csParseErr'));
       return;
     }
     handleCsData(data);
@@ -1033,9 +1386,14 @@
 
   function formatDur(min) {
     var h = Math.floor(min / 60), m = min % 60;
-    if (h === 0) return m + '分';
-    if (m === 0) return h + '時間';
-    return h + '時間' + m + '分';
+    if (lang === 'ja') {
+      if (h === 0) return m + '分';
+      if (m === 0) return h + '時間';
+      return h + '時間' + m + '分';
+    }
+    if (h === 0) return m + 'm';
+    if (m === 0) return h + 'h';
+    return h + 'h ' + m + 'm';
   }
 
   function bindStepper(minusId, plusId, valueId, key, min, max, opts) {
@@ -1141,7 +1499,7 @@
       var bestCost = Infinity;
       var TRIALS = 400;
       var target = targetPairSum(playing);
-      for (var t = 0; t < TRIALS; t++) {
+      for (var t2 = 0; t2 < TRIALS; t2++) {
         var order = shuffle(playing);
         var matches = [];
         var cost = 0;
@@ -1186,7 +1544,7 @@
     var target = targetPairSum(players);
     var best = null;
     var bestCost = Infinity;
-    for (var t = 0; t < 400; t++) {
+    for (var t2 = 0; t2 < 400; t2++) {
       var order = shuffle(players);
       var units = [];
       for (var i = 0; i + 1 < order.length; i += 2) {
@@ -1293,7 +1651,7 @@
       }
       var best = null;
       var bestCost = Infinity;
-      for (var t = 0; t < 300; t++) {
+      for (var t2 = 0; t2 < 300; t2++) {
         var order = shuffle(playingIdx);
         var ms = [];
         var cost = 0;
@@ -1334,8 +1692,8 @@
 
   function courtLabel(ci) {
     var nums = parseCourtNumbers();
-    if (nums[ci] !== undefined) return 'コート' + nums[ci];
-    return 'コート' + (ci + 1);
+    var n = nums[ci] !== undefined ? nums[ci] : (ci + 1);
+    return t('court', { n: n });
   }
 
   // 名前＋性別・レベルのタグを組み立てる
@@ -1353,7 +1711,7 @@
     if (p.level) {
       var lv = document.createElement('span');
       lv.className = 'tag lv';
-      lv.textContent = LEVELS[p.level];
+      lv.textContent = t('lvS_' + p.level);
       frag.appendChild(lv);
     }
     return frag;
@@ -1361,9 +1719,19 @@
 
   function renderPairInto(el, pair) {
     pair.forEach(function (p, i) {
-      if (i > 0) el.appendChild(document.createTextNode('・'));
+      if (i > 0) el.appendChild(document.createTextNode(t('pairJoin')));
       el.appendChild(playerLabel(p));
     });
+  }
+
+  function resetSchedule() {
+    scheduleEl.innerHTML = '';
+    var p = document.createElement('p');
+    p.className = 'empty-note';
+    p.textContent = t('emptyNote');
+    scheduleEl.appendChild(p);
+    statsCard.style.display = 'none';
+    errorEl.style.display = 'none';
   }
 
   function renderSchedule(result, players) {
@@ -1382,16 +1750,18 @@
       var warm = document.createElement('div');
       warm.className = 'timeline-row warmup';
       warm.innerHTML = '<span class="time">' + minToTime(start) + '〜' + minToTime(gameStart) + '</span>'
-        + '<span class="desc">🏃 フリー練習・アップ</span>'
+        + '<span class="desc"></span>'
         + '<span class="sub">' + formatDur(warmupMin) + '</span>';
+      warm.querySelector('.desc').textContent = t('warmupDesc');
       timeline.appendChild(warm);
     }
 
     var games = document.createElement('div');
     games.className = 'timeline-row games';
     games.innerHTML = '<span class="time">' + minToTime(gameStart) + '〜' + minToTime(end) + '</span>'
-      + '<span class="desc">🎾 ゲーム（総当たり ' + result.schedule.length + 'ラウンド）</span>'
+      + '<span class="desc"></span>'
       + '<span class="sub">' + formatDur(gameMin) + '</span>';
+    games.querySelector('.desc').textContent = t('gamesDesc', { n: result.schedule.length });
     timeline.appendChild(games);
 
     scheduleEl.appendChild(timeline);
@@ -1401,8 +1771,7 @@
     if (usedCourts < state.courts) {
       var notice = document.createElement('div');
       notice.className = 'court-notice';
-      notice.textContent = '📢 参加' + players.length + '人ではダブルス同時' + usedCourts + '試合が上限のため、'
-        + (state.courts - usedCourts) + '面は空きコートになります（フリー練習などにどうぞ）。';
+      notice.textContent = t('courtNotice', { p: players.length, u: usedCourts, e: state.courts - usedCourts });
       scheduleEl.appendChild(notice);
     }
 
@@ -1412,7 +1781,7 @@
       fp.className = 'fixed-pairs';
       var title = document.createElement('div');
       title.className = 'fp-title';
-      title.textContent = '🤝 固定ペア';
+      title.textContent = t('fixedPairsT');
       fp.appendChild(title);
       var list = document.createElement('div');
       list.className = 'fp-list';
@@ -1423,7 +1792,7 @@
         if (u.length === 1) {
           var note = document.createElement('span');
           note.className = 'trio-note';
-          note.textContent = '（補欠・交代出場）';
+          note.textContent = t('subNote');
           el.appendChild(note);
         }
         list.appendChild(el);
@@ -1444,7 +1813,7 @@
       var header = document.createElement('div');
       header.className = 'round-header';
       var title = document.createElement('span');
-      title.textContent = 'ラウンド ' + (idx + 1);
+      title.textContent = t('round', { n: idx + 1 });
       var rtime = document.createElement('span');
       rtime.className = 'rtime';
       rtime.textContent = minToTime(t1) + '〜' + minToTime(t2);
@@ -1492,7 +1861,7 @@
         emptyLabel.textContent = courtLabel(ci2);
         var emptyText = document.createElement('span');
         emptyText.className = 'empty-court-text';
-        emptyText.textContent = '空きコート';
+        emptyText.textContent = t('emptyCourt');
         emptyRow.appendChild(emptyLabel);
         emptyRow.appendChild(emptyText);
         roundEl.appendChild(emptyRow);
@@ -1501,7 +1870,9 @@
       if (round.resting.length > 0) {
         var rest = document.createElement('div');
         rest.className = 'rest-row';
-        rest.textContent = '☕ 休憩：' + round.resting.map(function (p) { return p.name; }).join('、');
+        rest.textContent = t('restRow', {
+          names: round.resting.map(function (p) { return p.name; }).join(t('listJoin'))
+        });
         roundEl.appendChild(rest);
       }
 
@@ -1535,13 +1906,13 @@
     var players = state.members.filter(function (m) { return state.attending[m.id]; });
 
     if (players.length < 4) {
-      errorEl.textContent = 'ダブルスには最低4人の参加者が必要です（現在 ' + players.length + '人）';
+      errorEl.textContent = t('errMin', { n: players.length });
       errorEl.style.display = 'block';
       return;
     }
 
     if (state.warmupMin >= state.durationMin) {
-      errorEl.textContent = 'アップ時間が所要時間以上になっています。設定を見直してください。';
+      errorEl.textContent = t('errWarmup');
       errorEl.style.display = 'block';
       return;
     }
@@ -1553,8 +1924,61 @@
     document.getElementById('schedule').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
+  // ---------- 言語適用・UI更新 ----------
+  var langSelect = document.getElementById('lang-select');
+
+  function applyLang() {
+    document.documentElement.lang = lang;
+    document.title = t('appTitle');
+    document.getElementById('app-title').textContent = t('appTitle');
+    Array.prototype.forEach.call(document.querySelectorAll('[data-i18n]'), function (el) {
+      el.textContent = t(el.getAttribute('data-i18n'));
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-i18n-ph]'), function (el) {
+      el.placeholder = t(el.getAttribute('data-i18n-ph'));
+    });
+    // 調整さんは日本語のみ表示
+    document.getElementById('cs-card').style.display = (lang === 'ja') ? '' : 'none';
+    langSelect.value = lang;
+  }
+
+  function refreshValues() {
+    document.getElementById('court-count').textContent = state.courts;
+    document.getElementById('round-count').textContent = state.rounds;
+    document.getElementById('duration-value').textContent = formatDur(state.durationMin);
+    document.getElementById('warmup-value').textContent = formatDur(state.warmupMin);
+    startTimeInput.value = state.startTime;
+    courtNumbersInput.value = state.courtNumbers;
+    document.getElementById('cs-url').value = state.csUrl || '';
+    renderPairMode();
+  }
+
+  function refreshAll() {
+    renderCircles();
+    refreshValues();
+    renderMembers();
+    resetSchedule();
+    csData = null;
+    csChosenIdx = -1;
+    csDatesEl.innerHTML = '';
+    csStatus.className = 'cs-status';
+    csFallback.classList.remove('show');
+  }
+
+  langSelect.addEventListener('change', function () {
+    lang = langSelect.value;
+    save();
+    applyLang();
+    refreshValues();
+    renderMembers();
+    resetSchedule();
+    renderCsDates();
+  });
+
   // ---------- 初期化 ----------
   load();
+  applyLang();
+  renderCircles();
   renderMembers();
   renderPairMode();
   bindStepper('court-minus', 'court-plus', 'court-count', 'courts', 1, 10, { onChange: function () {
@@ -1579,10 +2003,8 @@
   }
   bindStepper('duration-minus', 'duration-plus', 'duration-value', 'durationMin', 30, 360, { step: 15, format: formatDur, onChange: applyAutoRounds });
   bindStepper('warmup-minus', 'warmup-plus', 'warmup-value', 'warmupMin', 0, 120, { step: 5, format: formatDur, onChange: applyAutoRounds });
-  startTimeInput.value = state.startTime;
-  courtNumbersInput.value = state.courtNumbers;
-  syncCourtsFromNumbers();
-  if (state.csUrl) document.getElementById('cs-url').value = state.csUrl;
+  refreshValues();
+  save();
 })();
 </script>
 </body>
