@@ -310,6 +310,8 @@
     color: var(--muted);
     border-radius: 0;
     font-size: 0.9rem;
+    white-space: nowrap;
+    padding: 0 4px;
   }
   .seg button.sel {
     background: var(--primary);
@@ -499,6 +501,24 @@
     text-decoration: none;
   }
   .site-footer a:hover { text-decoration: underline; }
+
+  /* スマホ最適化：狭い画面では設定を1カラムにして折り返し崩れを防ぐ */
+  @media (max-width: 560px) {
+    header { padding: 12px 10px; gap: 6px; }
+    header h1 { font-size: 0.84rem; letter-spacing: -0.02em; }
+    header .ball { font-size: 1.1rem; }
+    .lang-select { padding: 4px 4px; font-size: 0.78rem; }
+    main { padding: 12px; }
+    .card { padding: 14px 12px; }
+    .settings-grid { grid-template-columns: 1fr; gap: 14px; }
+    .setting label { margin-bottom: 4px; }
+    .tabs .tab { font-size: 0.9rem; padding: 11px 6px; }
+    .timeline-row { flex-wrap: wrap; row-gap: 2px; }
+    .court-row { padding: 10px 10px; gap: 8px; }
+    .pair { font-size: 0.9rem; }
+    .member-chip { padding: 6px 5px 6px 12px; }
+    .btn-generate { width: 100%; }
+  }
 </style>
 </head>
 <body>
