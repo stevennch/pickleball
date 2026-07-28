@@ -362,6 +362,23 @@
     border-top: 1px solid var(--border);
     gap: 10px;
   }
+  .court-row.empty { background: #fafbfc; }
+  .court-row.empty .court-label { background: #f1f5f9; color: var(--muted); }
+  .empty-court-text {
+    flex: 1;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+  .court-notice {
+    background: #fff8e1;
+    border: 1px solid #f5d980;
+    color: #8a6d00;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    margin-bottom: 14px;
+  }
   .court-label {
     flex-shrink: 0;
     background: #e6f4ee;
@@ -1379,6 +1396,16 @@
 
     scheduleEl.appendChild(timeline);
 
+    // 設定コート数より同時試合数が少ない場合のお知らせ
+    var usedCourts = result.schedule.length > 0 ? result.schedule[0].matches.length : 0;
+    if (usedCourts < state.courts) {
+      var notice = document.createElement('div');
+      notice.className = 'court-notice';
+      notice.textContent = '📢 参加' + players.length + '人ではダブルス同時' + usedCourts + '試合が上限のため、'
+        + (state.courts - usedCourts) + '面は空きコートになります（フリー練習などにどうぞ）。';
+      scheduleEl.appendChild(notice);
+    }
+
     // 固定ペア一覧
     if (result.fixedUnits) {
       var fp = document.createElement('div');
@@ -1455,6 +1482,21 @@
         row.appendChild(matchup);
         roundEl.appendChild(row);
       });
+
+      // 埋められないコートは「空きコート」として表示
+      for (var ci2 = round.matches.length; ci2 < state.courts; ci2++) {
+        var emptyRow = document.createElement('div');
+        emptyRow.className = 'court-row empty';
+        var emptyLabel = document.createElement('span');
+        emptyLabel.className = 'court-label';
+        emptyLabel.textContent = courtLabel(ci2);
+        var emptyText = document.createElement('span');
+        emptyText.className = 'empty-court-text';
+        emptyText.textContent = '空きコート';
+        emptyRow.appendChild(emptyLabel);
+        emptyRow.appendChild(emptyText);
+        roundEl.appendChild(emptyRow);
+      }
 
       if (round.resting.length > 0) {
         var rest = document.createElement('div');
