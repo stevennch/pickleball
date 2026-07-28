@@ -210,6 +210,9 @@
   .tag.g-M { background: #e3edf9; color: #2a6cb5; }
   .tag.g-F { background: #fbe7ef; color: #c2447c; }
   .tag.lv { background: #f1f5f9; color: #475569; }
+  /* 性別は♂♀マークではなく名前の色で表現（青=男性・ピンク=女性） */
+  .name-M, .member-chip .name.name-M { color: #2a6cb5; }
+  .name-F, .member-chip .name.name-F { color: #c2447c; }
   .pair .tag, .fp-unit .tag { margin: 0 1px; vertical-align: 1px; }
   .pair-num {
     background: var(--primary);
@@ -561,10 +564,29 @@
     .setting label { margin-bottom: 4px; }
     .tabs .tab { font-size: 0.9rem; padding: 11px 6px; }
     .timeline-row { flex-wrap: wrap; row-gap: 2px; }
-    .court-row { padding: 10px 10px; gap: 8px; }
+    .court-row { padding: 8px 10px; gap: 8px; }
     .pair { font-size: 0.9rem; }
     .member-chip { padding: 6px 5px 6px 12px; }
     .btn-generate { width: 100%; }
+
+    /* 対戦カード：ペア1行目 → VS → ペア2行目 の統一レイアウト */
+    .matchup {
+      flex-direction: column;
+      gap: 3px;
+    }
+    .matchup .pair { text-align: center; }
+
+    /* コートラベルは縦書きで横幅を節約（空きコート行は横書きのまま） */
+    .court-row:not(.empty) .court-label {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      align-self: stretch;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 3px;
+      letter-spacing: 1px;
+    }
   }
 </style>
 </head>
@@ -811,7 +833,7 @@
       addBtn: '追加',
       selectAll: '全員選択',
       clearAll: '選択解除',
-      memberHint: '名前をタップして当日の参加者を選択（緑＝参加）。「✎」で性別・レベルを設定、「×」でメンバー削除。',
+      memberHint: '名前をタップして当日の参加者を選択（緑＝参加）。「✎」で性別・レベルを設定、「×」でメンバー削除。性別は名前の色で表示されます（青＝男性・ピンク＝女性）。',
       dupName: '同じ名前のメンバーがいます',
       confirmDelete: '「{name}」を削除しますか？',
       editAria: '{name}の設定',
@@ -886,7 +908,7 @@
       addBtn: 'Add',
       selectAll: 'Select all',
       clearAll: 'Clear',
-      memberHint: 'Tap a name to toggle attendance (green = joining). Use ✎ to set gender/level, × to remove a member.',
+      memberHint: 'Tap a name to toggle attendance (green = joining). Use ✎ to set gender/level, × to remove a member. Gender is shown by name color (blue = male, pink = female).',
       dupName: 'A member with this name already exists.',
       confirmDelete: 'Delete "{name}"?',
       editAria: 'Edit {name}',
@@ -961,7 +983,7 @@
       addBtn: 'Thêm',
       selectAll: 'Chọn tất cả',
       clearAll: 'Bỏ chọn',
-      memberHint: 'Chạm vào tên để chọn người tham gia hôm nay (xanh = tham gia). Nhấn ✎ để đặt giới tính/trình độ, × để xóa thành viên.',
+      memberHint: 'Chạm vào tên để chọn người tham gia hôm nay (xanh = tham gia). Nhấn ✎ để đặt giới tính/trình độ, × để xóa thành viên. Giới tính hiển thị bằng màu tên (xanh dương = nam, hồng = nữ).',
       dupName: 'Đã có thành viên trùng tên.',
       confirmDelete: 'Xóa "{name}"?',
       editAria: 'Cài đặt cho {name}',
@@ -1200,7 +1222,7 @@
       chip.className = 'member-chip' + (state.attending[m.id] ? ' selected' : '');
 
       var name = document.createElement('span');
-      name.className = 'name';
+      name.className = 'name' + (m.gender ? ' name-' + m.gender : '');
       name.textContent = m.name;
       name.addEventListener('click', function () {
         if (state.attending[m.id]) delete state.attending[m.id];
@@ -1210,12 +1232,6 @@
       });
       chip.appendChild(name);
 
-      if (m.gender) {
-        var g = document.createElement('span');
-        g.className = 'tag g-' + m.gender;
-        g.textContent = m.gender === 'M' ? '♂' : '♀';
-        chip.appendChild(g);
-      }
       if (m.level) {
         var lv = document.createElement('span');
         lv.className = 'tag lv';
@@ -2083,18 +2099,13 @@
     return t('court', { n: n });
   }
 
-  // 名前＋性別・レベルのタグを組み立てる
+  // 名前（性別は色で表現）＋レベルタグを組み立てる
   function playerLabel(p) {
     var frag = document.createDocumentFragment();
     var name = document.createElement('span');
     name.textContent = p.name;
+    if (p.gender) name.className = 'name-' + p.gender;
     frag.appendChild(name);
-    if (p.gender) {
-      var g = document.createElement('span');
-      g.className = 'tag g-' + p.gender;
-      g.textContent = p.gender === 'M' ? '♂' : '♀';
-      frag.appendChild(g);
-    }
     if (p.level) {
       var lv = document.createElement('span');
       lv.className = 'tag lv';
