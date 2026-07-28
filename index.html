@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ピックルボール 組み合わせメーカー</title>
+<title>ラケットサークル組み合わせくん</title>
 <style>
   :root {
     --bg: #f4f6f8;
@@ -417,12 +417,25 @@
     padding: 24px 0;
     font-size: 0.9rem;
   }
+
+  .site-footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.8rem;
+    padding: 24px 16px 8px;
+  }
+  .site-footer a {
+    color: var(--primary);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .site-footer a:hover { text-decoration: underline; }
 </style>
 </head>
 <body>
 <header>
-  <span class="ball">🏓</span>
-  <h1>ピックルボール 組み合わせメーカー</h1>
+  <span class="ball">🎾</span>
+  <h1>ラケットサークル組み合わせくん</h1>
 </header>
 <main>
 
@@ -537,6 +550,14 @@
   </section>
 
 </main>
+
+<footer class="site-footer">
+  <p>開発者:
+    <a href="https://github.com/stevennch" target="_blank" rel="noopener">GitHub</a>
+    ・
+    <a href="https://x.com/stevennch" target="_blank" rel="noopener">X (Twitter)</a>
+  </p>
+</footer>
 
 <!-- メンバー編集モーダル -->
 <div class="overlay" id="edit-overlay">
