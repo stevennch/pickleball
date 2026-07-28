@@ -2,7 +2,7 @@
 
 ピックルボール・テニス・バドミントンなどのラケットスポーツサークル向けの、ダブルス総当たり組み合わせ生成Webアプリです。
 
-**👉 アプリを開く: https://stevennch.github.io/pickleball/**
+**👉 アプリを開く: https://stevennch.github.io/matchmaker/**
 
 ## 機能
 
