@@ -135,10 +135,10 @@
   .member-chip {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
     border: 1.5px solid var(--border);
     border-radius: 999px;
-    padding: 7px 8px 7px 14px;
+    padding: 7px 6px 7px 14px;
     background: #fff;
     user-select: none;
   }
@@ -148,16 +148,66 @@
   }
   .member-chip .name { cursor: pointer; font-weight: 600; }
   .member-chip.selected .name { color: var(--primary-dark); }
-  .member-chip .del {
+  .tag {
+    font-size: 0.68rem;
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .tag.g-M { background: #e3edf9; color: #2a6cb5; }
+  .tag.g-F { background: #fbe7ef; color: #c2447c; }
+  .tag.lv { background: #f1f5f9; color: #475569; }
+  .member-chip .icon-btn {
     background: transparent;
     color: var(--muted);
-    font-size: 1rem;
+    font-size: 0.95rem;
     width: 24px; height: 24px;
     line-height: 1;
     border-radius: 50%;
   }
+  .member-chip .icon-btn:hover { background: #f1f5f9; }
   .member-chip .del:hover { background: #fdecec; color: var(--danger); }
   .select-actions { margin-top: 12px; display: flex; gap: 8px; }
+
+  /* メンバー編集モーダル */
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45);
+    display: none;
+    align-items: center; justify-content: center;
+    z-index: 50;
+    padding: 16px;
+  }
+  .overlay.show { display: flex; }
+  .modal {
+    background: #fff;
+    border-radius: 14px;
+    padding: 20px;
+    width: min(92vw, 380px);
+  }
+  .modal h3 { font-size: 1.05rem; margin-bottom: 14px; }
+  .modal .field-label {
+    font-size: 0.8rem;
+    color: var(--muted);
+    font-weight: 700;
+    margin: 12px 0 6px;
+  }
+  .opt-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .opt {
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    background: #fff;
+    font-size: 0.9rem;
+  }
+  .opt.sel {
+    border-color: var(--primary);
+    background: #e6f4ee;
+    font-weight: 700;
+    color: var(--primary-dark);
+  }
+  .modal .modal-actions { margin-top: 18px; text-align: right; }
 
   /* 設定 */
   .settings-grid {
@@ -172,7 +222,6 @@
     margin-bottom: 6px;
     font-weight: 600;
   }
-  .setting.full { grid-column: 1 / -1; }
   .stepper {
     display: flex;
     align-items: center;
@@ -195,6 +244,25 @@
     font-weight: 700;
   }
   input[type="time"] { height: 46px; }
+  .seg {
+    display: flex;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    height: 46px;
+  }
+  .seg button {
+    flex: 1;
+    background: #fff;
+    color: var(--muted);
+    border-radius: 0;
+    font-size: 0.9rem;
+  }
+  .seg button.sel {
+    background: var(--primary);
+    color: #fff;
+    font-weight: 700;
+  }
 
   .generate-wrap { text-align: center; margin: 20px 0; }
   .btn-generate {
@@ -237,6 +305,31 @@
   .timeline-row.games .time { color: var(--primary-dark); }
   .timeline-row .desc { font-weight: 600; }
   .timeline-row .sub { color: var(--muted); font-size: 0.8rem; margin-left: auto; white-space: nowrap; }
+
+  /* 固定ペア一覧 */
+  .fixed-pairs {
+    border: 1px dashed var(--primary);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+    background: #f7fcfa;
+  }
+  .fixed-pairs .fp-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--primary-dark);
+    margin-bottom: 8px;
+  }
+  .fixed-pairs .fp-list { display: flex; flex-wrap: wrap; gap: 8px; }
+  .fp-unit {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  .fp-unit .trio-note { color: var(--muted); font-weight: 400; font-size: 0.75rem; }
 
   /* 対戦表 */
   .round {
@@ -349,7 +442,7 @@
         <button class="btn-primary" id="cs-parse-btn" type="button">貼り付けた内容を取り込む</button>
       </div>
     </div>
-    <p class="hint">一番◯が多い日程の参加者を自動で選択します（未登録の名前はメンバーに追加）。日程は下のボタンで切り替えできます。</p>
+    <p class="hint">一番◯が多い日程の参加者を自動で選択します。取り込んだ名前はメンバーとして保存され、次回以降も残ります。日程は下のボタンで切り替えできます。</p>
   </section>
 
   <!-- メンバー管理 -->
@@ -364,7 +457,7 @@
       <button class="btn-ghost" id="select-all-btn">全員選択</button>
       <button class="btn-ghost" id="clear-all-btn">選択解除</button>
     </div>
-    <p class="hint">名前をタップして当日の参加者を選択（緑＝参加）。「×」でメンバー削除。</p>
+    <p class="hint">名前をタップして当日の参加者を選択（緑＝参加）。「✎」で性別・レベルを設定、「×」でメンバー削除。</p>
   </section>
 
   <!-- 設定 -->
@@ -372,11 +465,27 @@
     <h2>当日の設定</h2>
     <div class="settings-grid">
       <div class="setting">
-        <label>開始時刻（2時間：前半30分アップ＋90分ゲーム）</label>
+        <label>開始時刻</label>
         <input type="time" id="start-time" value="10:00">
       </div>
       <div class="setting">
-        <label>ラウンド数（90分の目安：8）</label>
+        <label>所要時間</label>
+        <div class="stepper">
+          <button id="duration-minus" type="button">−</button>
+          <span class="value" id="duration-value">2時間</span>
+          <button id="duration-plus" type="button">＋</button>
+        </div>
+      </div>
+      <div class="setting">
+        <label>アップ時間（フリー練習）</label>
+        <div class="stepper">
+          <button id="warmup-minus" type="button">−</button>
+          <span class="value" id="warmup-value">30分</span>
+          <button id="warmup-plus" type="button">＋</button>
+        </div>
+      </div>
+      <div class="setting">
+        <label>ラウンド数</label>
         <div class="stepper">
           <button id="round-minus" type="button">−</button>
           <span class="value" id="round-count">8</span>
@@ -395,8 +504,15 @@
         <label>予約コート番号（任意・カンマ区切り）</label>
         <input type="text" id="court-numbers" placeholder="例: 3,5" inputmode="text" autocomplete="off">
       </div>
+      <div class="setting">
+        <label>ペアの組み方</label>
+        <div class="seg" id="pair-mode-seg">
+          <button type="button" data-mode="fixed">ペア固定</button>
+          <button type="button" data-mode="rotate">毎回シャッフル</button>
+        </div>
+      </div>
     </div>
-    <p class="hint">コート番号を入力すると、コート数はその個数に合わせて自動設定され、対戦表に実際の番号が表示されます。</p>
+    <p class="hint">ペアはなるべく「同じレベル」かつ「男女MIX」になるように自動で組まれます。「ペア固定」は最初に組んだペアのまま最後まで対戦します（奇数人数のときは1組だけ3人交代制）。</p>
   </section>
 
   <div class="generate-wrap">
@@ -420,6 +536,29 @@
   </section>
 
 </main>
+
+<!-- メンバー編集モーダル -->
+<div class="overlay" id="edit-overlay">
+  <div class="modal">
+    <h3 id="edit-name">メンバー設定</h3>
+    <div class="field-label">性別</div>
+    <div class="opt-row" id="edit-gender">
+      <button type="button" class="opt" data-v="M">男性</button>
+      <button type="button" class="opt" data-v="F">女性</button>
+    </div>
+    <div class="field-label">レベル</div>
+    <div class="opt-row" id="edit-level">
+      <button type="button" class="opt" data-v="adv">上級者</button>
+      <button type="button" class="opt" data-v="int">中級者</button>
+      <button type="button" class="opt" data-v="beg">初級者</button>
+      <button type="button" class="opt" data-v="nov">初心者</button>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn-primary" id="edit-close">完了</button>
+    </div>
+  </div>
+</div>
+
 <script>
 (function () {
   'use strict';
@@ -431,18 +570,21 @@
   // この中継経由で出欠データを取得する。空文字なら直接取得とプロキシのみ試す。
   var RELAY_URL = 'https://script.google.com/macros/s/AKfycbwYr_Vv_TwIrjCml0UbVMoZJ1ikTASR6yQ_I1mfI8tgV86OtG4oCwNOMrlnFI03iZcX/exec';
 
+  var LEVELS = { adv: '上級', int: '中級', beg: '初級', nov: '初心' };
+  var LEVEL_VAL = { adv: 3, int: 2, beg: 1, nov: 0 };
+
   var state = {
-    members: [],       // {id, name}
+    members: [],       // {id, name, gender?: 'M'|'F', level?: 'adv'|'int'|'beg'|'nov'}
     attending: {},     // id -> true
     courts: 2,
     rounds: 8,
     startTime: '10:00',
-    courtNumbers: '',  // "3,5" など
+    courtNumbers: '',
     csUrl: '',
+    pairMode: 'fixed', // 'fixed' | 'rotate'
+    durationMin: 120,  // 所要時間（分）
+    warmupMin: 30,     // アップ時間（分）
   };
-
-  var WARMUP_MIN = 30;
-  var GAME_MIN = 90;
 
   function load() {
     try {
@@ -456,12 +598,28 @@
         state.startTime = saved.startTime || '10:00';
         state.courtNumbers = saved.courtNumbers || '';
         state.csUrl = saved.csUrl || '';
+        state.pairMode = saved.pairMode === 'rotate' ? 'rotate' : 'fixed';
+        state.durationMin = saved.durationMin || 120;
+        state.warmupMin = (typeof saved.warmupMin === 'number') ? saved.warmupMin : 30;
       }
     } catch (e) { /* 破損時は初期状態 */ }
   }
 
   function save() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  function newId() {
+    return Date.now() + '_' + Math.random().toString(36).slice(2, 7);
   }
 
   // ---------- メンバー管理 ----------
@@ -484,9 +642,31 @@
         save();
         renderMembers();
       });
+      chip.appendChild(name);
+
+      if (m.gender) {
+        var g = document.createElement('span');
+        g.className = 'tag g-' + m.gender;
+        g.textContent = m.gender === 'M' ? '♂' : '♀';
+        chip.appendChild(g);
+      }
+      if (m.level) {
+        var lv = document.createElement('span');
+        lv.className = 'tag lv';
+        lv.textContent = LEVELS[m.level];
+        chip.appendChild(lv);
+      }
+
+      var edit = document.createElement('button');
+      edit.className = 'icon-btn';
+      edit.type = 'button';
+      edit.textContent = '✎';
+      edit.setAttribute('aria-label', m.name + 'の設定');
+      edit.addEventListener('click', function () { openEdit(m.id); });
+      chip.appendChild(edit);
 
       var del = document.createElement('button');
-      del.className = 'del';
+      del.className = 'icon-btn del';
       del.type = 'button';
       del.textContent = '×';
       del.setAttribute('aria-label', m.name + 'を削除');
@@ -497,17 +677,12 @@
         save();
         renderMembers();
       });
-
-      chip.appendChild(name);
       chip.appendChild(del);
+
       memberListEl.appendChild(chip);
     });
     var count = Object.keys(state.attending).length;
     attendCountEl.textContent = '参加 ' + count + '人';
-  }
-
-  function newId() {
-    return Date.now() + '_' + Math.random().toString(36).slice(2, 7);
   }
 
   function addMember() {
@@ -538,11 +713,63 @@
     save(); renderMembers();
   });
 
+  // ---------- メンバー編集モーダル ----------
+  var overlay = document.getElementById('edit-overlay');
+  var editingId = null;
+
+  function openEdit(id) {
+    editingId = id;
+    var m = state.members.filter(function (x) { return x.id === id; })[0];
+    if (!m) return;
+    document.getElementById('edit-name').textContent = m.name;
+    renderEditOpts();
+    overlay.classList.add('show');
+  }
+
+  function renderEditOpts() {
+    var m = state.members.filter(function (x) { return x.id === editingId; })[0];
+    if (!m) return;
+    Array.prototype.forEach.call(document.querySelectorAll('#edit-gender .opt'), function (b) {
+      b.className = 'opt' + (m.gender === b.getAttribute('data-v') ? ' sel' : '');
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('#edit-level .opt'), function (b) {
+      b.className = 'opt' + (m.level === b.getAttribute('data-v') ? ' sel' : '');
+    });
+  }
+
+  function bindOptRow(rowId, key) {
+    document.getElementById(rowId).addEventListener('click', function (e) {
+      var v = e.target && e.target.getAttribute && e.target.getAttribute('data-v');
+      if (!v) return;
+      var m = state.members.filter(function (x) { return x.id === editingId; })[0];
+      if (!m) return;
+      // 同じ選択肢をもう一度タップで解除
+      if (m[key] === v) delete m[key];
+      else m[key] = v;
+      save();
+      renderEditOpts();
+      renderMembers();
+    });
+  }
+  bindOptRow('edit-gender', 'gender');
+  bindOptRow('edit-level', 'level');
+
+  document.getElementById('edit-close').addEventListener('click', function () {
+    overlay.classList.remove('show');
+    editingId = null;
+  });
+  overlay.addEventListener('click', function (e) {
+    if (e.target === overlay) {
+      overlay.classList.remove('show');
+      editingId = null;
+    }
+  });
+
   // ---------- 調整さん取り込み ----------
   var csStatus = document.getElementById('cs-status');
   var csDatesEl = document.getElementById('cs-dates');
   var csFallback = document.getElementById('cs-fallback');
-  var csData = null; // { dates: [...], rows: [[name, mark1, mark2, ...], ...] }
+  var csData = null;
   var csChosenIdx = -1;
 
   function setCsStatus(kind, msg) {
@@ -555,7 +782,6 @@
     return m ? m[1] : null;
   }
 
-  // ダブルクォート対応の簡易CSV行パーサ
   function splitCsvLine(line) {
     var out = [];
     var cur = '';
@@ -617,6 +843,8 @@
       .filter(function (r) { return isMaru(r.marks[di]); })
       .map(function (r) { return r.name; });
 
+    // 既存メンバーは残したまま、◯の人だけを参加に設定。
+    // 未登録の名前は新規メンバーとして追加（以降ずっとメンバー管理に残る）。
     var added = 0;
     state.attending = {};
     names.forEach(function (n) {
@@ -648,7 +876,6 @@
       b.className = 'cs-date-btn'
         + (counts[di] === maxCnt ? ' best' : '')
         + (di === csChosenIdx ? ' chosen' : '');
-      b.innerHTML = '';
       var label = document.createElement('span');
       label.textContent = d;
       var cnt = document.createElement('span');
@@ -764,14 +991,24 @@
     }
   }
 
-  function bindStepper(minusId, plusId, valueId, key, min, max, onChange) {
+  function formatDur(min) {
+    var h = Math.floor(min / 60), m = min % 60;
+    if (h === 0) return m + '分';
+    if (m === 0) return h + '時間';
+    return h + '時間' + m + '分';
+  }
+
+  function bindStepper(minusId, plusId, valueId, key, min, max, opts) {
+    opts = opts || {};
+    var step = opts.step || 1;
+    var format = opts.format || function (v) { return v; };
     var valueEl = document.getElementById(valueId);
-    function render() { valueEl.textContent = state[key]; }
+    function render() { valueEl.textContent = format(state[key]); }
     document.getElementById(minusId).addEventListener('click', function () {
-      if (state[key] > min) { state[key]--; save(); render(); if (onChange) onChange(); }
+      if (state[key] - step >= min) { state[key] -= step; save(); render(); if (opts.onChange) opts.onChange(); }
     });
     document.getElementById(plusId).addEventListener('click', function () {
-      if (state[key] < max) { state[key]++; save(); render(); if (onChange) onChange(); }
+      if (state[key] + step <= max) { state[key] += step; save(); render(); if (opts.onChange) opts.onChange(); }
     });
     render();
   }
@@ -787,6 +1024,20 @@
     save();
   });
 
+  var pairSeg = document.getElementById('pair-mode-seg');
+  function renderPairMode() {
+    Array.prototype.forEach.call(pairSeg.querySelectorAll('button'), function (b) {
+      b.className = b.getAttribute('data-mode') === state.pairMode ? 'sel' : '';
+    });
+  }
+  pairSeg.addEventListener('click', function (e) {
+    var mode = e.target && e.target.getAttribute && e.target.getAttribute('data-mode');
+    if (!mode) return;
+    state.pairMode = mode;
+    save();
+    renderPairMode();
+  });
+
   // ---------- 時刻ユーティリティ ----------
   function timeToMin(hhmm) {
     var p = hhmm.split(':');
@@ -798,8 +1049,32 @@
     return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
   }
 
-  // ---------- 組み合わせ生成 ----------
-  function generateSchedule(players, courts, rounds) {
+  // ---------- ペア品質コスト（同レベル＆男女MIX優先） ----------
+  function playerLevel(p) {
+    return p.level in LEVEL_VAL ? LEVEL_VAL[p.level] : 1.5; // 未設定は中間扱い
+  }
+
+  function pairQualityCost(a, b) {
+    var d = Math.abs(playerLevel(a) - playerLevel(b));
+    var cost = d * d * 8;
+    if (a.gender && b.gender && a.gender === b.gender) cost += 10; // 同性ペアにペナルティ
+    return cost;
+  }
+
+  function unitQualityCost(u) {
+    if (u.length === 2) return pairQualityCost(u[0], u[1]);
+    // 3人交代ペアは3通りのペアの平均
+    return (pairQualityCost(u[0], u[1]) + pairQualityCost(u[0], u[2]) + pairQualityCost(u[1], u[2])) / 3;
+  }
+
+  function unitLevel(u) {
+    var sum = 0;
+    u.forEach(function (p) { sum += playerLevel(p); });
+    return sum / u.length;
+  }
+
+  // ---------- 毎回シャッフル方式 ----------
+  function generateRotateSchedule(players, courts, rounds) {
     var gamesPlayed = {};
     var restCount = {};
     var partnerCount = {};
@@ -807,15 +1082,6 @@
     players.forEach(function (p) { gamesPlayed[p.id] = 0; restCount[p.id] = 0; });
 
     function pairKey(a, b) { return a.id < b.id ? a.id + '|' + b.id : b.id + '|' + a.id; }
-
-    function shuffle(arr) {
-      var a = arr.slice();
-      for (var i = a.length - 1; i > 0; i--) {
-        var j = Math.floor(Math.random() * (i + 1));
-        var t = a[i]; a[i] = a[j]; a[j] = t;
-      }
-      return a;
-    }
 
     var schedule = [];
     for (var r = 0; r < rounds; r++) {
@@ -831,7 +1097,7 @@
 
       var best = null;
       var bestCost = Infinity;
-      var TRIALS = 300;
+      var TRIALS = 400;
       for (var t = 0; t < TRIALS; t++) {
         var order = shuffle(playing);
         var matches = [];
@@ -839,8 +1105,10 @@
         for (var c = 0; c < courtsUsed; c++) {
           var g = order.slice(c * 4, c * 4 + 4);
           var pair1 = [g[0], g[1]], pair2 = [g[2], g[3]];
-          cost += Math.pow(partnerCount[pairKey(pair1[0], pair1[1])] || 0, 2) * 10;
-          cost += Math.pow(partnerCount[pairKey(pair2[0], pair2[1])] || 0, 2) * 10;
+          cost += Math.pow(partnerCount[pairKey(pair1[0], pair1[1])] || 0, 2) * 20;
+          cost += Math.pow(partnerCount[pairKey(pair2[0], pair2[1])] || 0, 2) * 20;
+          cost += pairQualityCost(pair1[0], pair1[1]);
+          cost += pairQualityCost(pair2[0], pair2[1]);
           for (var i = 0; i < 2; i++) {
             for (var j = 0; j < 2; j++) {
               cost += (opponentCount[pairKey(pair1[i], pair2[j])] || 0);
@@ -867,7 +1135,137 @@
       schedule.push({ matches: best, resting: resting });
     }
 
-    return { schedule: schedule, gamesPlayed: gamesPlayed, restCount: restCount };
+    return { schedule: schedule, gamesPlayed: gamesPlayed, restCount: restCount, fixedUnits: null };
+  }
+
+  // ---------- ペア固定方式 ----------
+  function buildFixedUnits(players) {
+    var best = null;
+    var bestCost = Infinity;
+    for (var t = 0; t < 400; t++) {
+      var order = shuffle(players);
+      var units = [];
+      for (var i = 0; i + 1 < order.length; i += 2) {
+        units.push([order[i], order[i + 1]]);
+      }
+      if (order.length % 2 === 1) {
+        units[units.length - 1].push(order[order.length - 1]); // 奇数なら最後を3人交代ペアに
+      }
+      var cost = 0;
+      units.forEach(function (u) { cost += unitQualityCost(u); });
+      if (cost < bestCost) { bestCost = cost; best = units; }
+      if (bestCost === 0) break;
+    }
+    // メンバー入れ替えによる局所改善（2-opt）
+    var improved = true;
+    while (improved) {
+      improved = false;
+      for (var i2 = 0; i2 < best.length; i2++) {
+        for (var j2 = i2 + 1; j2 < best.length; j2++) {
+          for (var a = 0; a < best[i2].length; a++) {
+            for (var b = 0; b < best[j2].length; b++) {
+              var cur = unitQualityCost(best[i2]) + unitQualityCost(best[j2]);
+              var tmp = best[i2][a]; best[i2][a] = best[j2][b]; best[j2][b] = tmp;
+              var nw = unitQualityCost(best[i2]) + unitQualityCost(best[j2]);
+              if (nw < cur - 1e-9) {
+                improved = true;
+              } else {
+                tmp = best[i2][a]; best[i2][a] = best[j2][b]; best[j2][b] = tmp;
+              }
+            }
+          }
+        }
+      }
+    }
+    return best;
+  }
+
+  function generateFixedSchedule(players, courts, rounds) {
+    var units = buildFixedUnits(players);
+    var gamesPlayed = {};
+    var restCount = {};
+    players.forEach(function (p) { gamesPlayed[p.id] = 0; restCount[p.id] = 0; });
+    var unitGames = units.map(function () { return 0; });
+    var unitRest = units.map(function () { return 0; });
+    var oppCount = {}; // "ui|uj" -> 対戦回数
+
+    function oppKey(i, j) { return i < j ? i + '|' + j : j + '|' + i; }
+
+    // 3人交代ペア：出場する2人を個人試合数の少ない順に選ぶ
+    function activeMembers(unitIdx) {
+      var u = units[unitIdx];
+      if (u.length === 2) return u.slice();
+      return shuffle(u).sort(function (a, b) { return gamesPlayed[a.id] - gamesPlayed[b.id]; }).slice(0, 2);
+    }
+
+    var schedule = [];
+    for (var r = 0; r < rounds; r++) {
+      var courtsUsed = Math.min(courts, Math.floor(units.length / 2));
+      var slots = courtsUsed * 2;
+
+      var idxs = shuffle(units.map(function (_, i) { return i; })).sort(function (a, b) {
+        if (unitGames[a] !== unitGames[b]) return unitGames[a] - unitGames[b];
+        return unitRest[b] - unitRest[a];
+      });
+      var playingIdx = idxs.slice(0, slots);
+      var restingIdx = idxs.slice(slots);
+
+      // 対戦カード決め：同じ相手との再戦を避けつつ、レベルの近いペア同士を当てる
+      var best = null;
+      var bestCost = Infinity;
+      for (var t = 0; t < 300; t++) {
+        var order = shuffle(playingIdx);
+        var ms = [];
+        var cost = 0;
+        for (var c = 0; c < courtsUsed; c++) {
+          var u1 = order[c * 2], u2 = order[c * 2 + 1];
+          cost += (oppCount[oppKey(u1, u2)] || 0) * 8;
+          cost += Math.abs(unitLevel(units[u1]) - unitLevel(units[u2])) * 2;
+          ms.push([u1, u2]);
+        }
+        if (cost < bestCost) { bestCost = cost; best = ms; }
+        if (bestCost === 0) break;
+      }
+
+      var matches = [];
+      var roundResting = [];
+      var restingIds = {};
+
+      best.forEach(function (mu) {
+        var p1 = activeMembers(mu[0]);
+        var p2 = activeMembers(mu[1]);
+        matches.push({ pair1: p1, pair2: p2 });
+        oppCount[oppKey(mu[0], mu[1])] = (oppCount[oppKey(mu[0], mu[1])] || 0) + 1;
+        unitGames[mu[0]]++;
+        unitGames[mu[1]]++;
+        p1.concat(p2).forEach(function (p) { gamesPlayed[p.id]++; });
+        // 3人交代ペアの控えメンバーはこのラウンド休憩
+        [mu[0], mu[1]].forEach(function (ui) {
+          units[ui].forEach(function (p) {
+            var active = (ui === mu[0] ? p1 : p2).some(function (x) { return x.id === p.id; });
+            if (!active && !restingIds[p.id]) {
+              restingIds[p.id] = true;
+              roundResting.push(p);
+            }
+          });
+        });
+      });
+
+      restingIdx.forEach(function (ui) {
+        unitRest[ui]++;
+        units[ui].forEach(function (p) {
+          if (!restingIds[p.id]) {
+            restingIds[p.id] = true;
+            roundResting.push(p);
+          }
+        });
+      });
+      roundResting.forEach(function (p) { restCount[p.id]++; });
+
+      schedule.push({ matches: matches, resting: roundResting });
+    }
+
+    return { schedule: schedule, gamesPlayed: gamesPlayed, restCount: restCount, fixedUnits: units };
   }
 
   // ---------- 表示 ----------
@@ -882,34 +1280,67 @@
     return 'コート' + (ci + 1);
   }
 
+  function pairText(pair) {
+    return pair.map(function (p) { return p.name; }).join('・');
+  }
+
   function renderSchedule(result, players) {
     scheduleEl.innerHTML = '';
 
-    // タイムライン（前半30分アップ + 90分ゲーム）
     var start = timeToMin(state.startTime || '10:00');
-    var gameStart = start + WARMUP_MIN;
-    var end = gameStart + GAME_MIN;
+    var warmupMin = Math.min(state.warmupMin, state.durationMin);
+    var gameMin = state.durationMin - warmupMin;
+    var gameStart = start + warmupMin;
+    var end = gameStart + gameMin;
 
     var timeline = document.createElement('div');
     timeline.className = 'timeline';
 
-    var warm = document.createElement('div');
-    warm.className = 'timeline-row warmup';
-    warm.innerHTML = '<span class="time">' + minToTime(start) + '〜' + minToTime(gameStart) + '</span>'
-      + '<span class="desc">🏃 フリー練習・アップ</span>'
-      + '<span class="sub">30分</span>';
-    timeline.appendChild(warm);
+    if (warmupMin > 0) {
+      var warm = document.createElement('div');
+      warm.className = 'timeline-row warmup';
+      warm.innerHTML = '<span class="time">' + minToTime(start) + '〜' + minToTime(gameStart) + '</span>'
+        + '<span class="desc">🏃 フリー練習・アップ</span>'
+        + '<span class="sub">' + formatDur(warmupMin) + '</span>';
+      timeline.appendChild(warm);
+    }
 
     var games = document.createElement('div');
     games.className = 'timeline-row games';
     games.innerHTML = '<span class="time">' + minToTime(gameStart) + '〜' + minToTime(end) + '</span>'
       + '<span class="desc">🎾 ゲーム（総当たり ' + result.schedule.length + 'ラウンド）</span>'
-      + '<span class="sub">90分</span>';
+      + '<span class="sub">' + formatDur(gameMin) + '</span>';
     timeline.appendChild(games);
 
     scheduleEl.appendChild(timeline);
 
-    var perRound = GAME_MIN / result.schedule.length;
+    // 固定ペア一覧
+    if (result.fixedUnits) {
+      var fp = document.createElement('div');
+      fp.className = 'fixed-pairs';
+      var title = document.createElement('div');
+      title.className = 'fp-title';
+      title.textContent = '🤝 固定ペア';
+      fp.appendChild(title);
+      var list = document.createElement('div');
+      list.className = 'fp-list';
+      result.fixedUnits.forEach(function (u) {
+        var el = document.createElement('span');
+        el.className = 'fp-unit';
+        el.textContent = pairText(u);
+        if (u.length === 3) {
+          var note = document.createElement('span');
+          note.className = 'trio-note';
+          note.textContent = '（3人交代）';
+          el.appendChild(note);
+        }
+        list.appendChild(el);
+      });
+      fp.appendChild(list);
+      scheduleEl.appendChild(fp);
+    }
+
+    var perRound = gameMin / result.schedule.length;
 
     result.schedule.forEach(function (round, idx) {
       var roundEl = document.createElement('div');
@@ -942,7 +1373,7 @@
 
         var p1 = document.createElement('span');
         p1.className = 'pair';
-        p1.textContent = m.pair1[0].name + '・' + m.pair1[1].name;
+        p1.textContent = pairText(m.pair1);
 
         var vs = document.createElement('span');
         vs.className = 'vs';
@@ -950,7 +1381,7 @@
 
         var p2 = document.createElement('span');
         p2.className = 'pair';
-        p2.textContent = m.pair2[0].name + '・' + m.pair2[1].name;
+        p2.textContent = pairText(m.pair2);
 
         matchup.appendChild(p1);
         matchup.appendChild(vs);
@@ -1002,7 +1433,15 @@
       return;
     }
 
-    var result = generateSchedule(players, state.courts, state.rounds);
+    if (state.warmupMin >= state.durationMin) {
+      errorEl.textContent = 'アップ時間が所要時間以上になっています。設定を見直してください。';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    var result = state.pairMode === 'fixed'
+      ? generateFixedSchedule(players, state.courts, state.rounds)
+      : generateRotateSchedule(players, state.courts, state.rounds);
     renderSchedule(result, players);
     document.getElementById('schedule').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
@@ -1010,15 +1449,17 @@
   // ---------- 初期化 ----------
   load();
   renderMembers();
-  bindStepper('court-minus', 'court-plus', 'court-count', 'courts', 1, 10, function () {
-    // 手動でコート数を変えたらコート番号入力はクリア（不整合防止）
+  renderPairMode();
+  bindStepper('court-minus', 'court-plus', 'court-count', 'courts', 1, 10, { onChange: function () {
     if (parseCourtNumbers().length > 0 && parseCourtNumbers().length !== state.courts) {
       state.courtNumbers = '';
       courtNumbersInput.value = '';
       save();
     }
-  });
+  } });
   bindStepper('round-minus', 'round-plus', 'round-count', 'rounds', 1, 20);
+  bindStepper('duration-minus', 'duration-plus', 'duration-value', 'durationMin', 30, 360, { step: 15, format: formatDur });
+  bindStepper('warmup-minus', 'warmup-plus', 'warmup-value', 'warmupMin', 0, 120, { step: 5, format: formatDur });
   startTimeInput.value = state.startTime;
   courtNumbersInput.value = state.courtNumbers;
   syncCourtsFromNumbers();
