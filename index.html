@@ -587,6 +587,11 @@
       padding: 6px 3px;
       letter-spacing: 1px;
     }
+    /* 縦書き内の数字は縦中横で正立させる */
+    .court-label .tcy {
+      text-combine-upright: all;
+      -webkit-text-combine: horizontal;
+    }
   }
 </style>
 </head>
@@ -2099,6 +2104,23 @@
     return t('court', { n: n });
   }
 
+  // コートラベルを組み立てる。数字部分は縦書き時に正立するよう
+  // 縦中横用のspan（.tcy）で包む
+  function setCourtLabel(el, ci) {
+    el.innerHTML = '';
+    courtLabel(ci).split(/(\d+)/).forEach(function (part) {
+      if (!part) return;
+      if (/^\d+$/.test(part)) {
+        var s = document.createElement('span');
+        s.className = 'tcy';
+        s.textContent = part;
+        el.appendChild(s);
+      } else {
+        el.appendChild(document.createTextNode(part));
+      }
+    });
+  }
+
   // 名前（性別は色で表現）＋レベルタグを組み立てる
   function playerLabel(p) {
     var frag = document.createDocumentFragment();
@@ -2235,7 +2257,7 @@
 
         var label = document.createElement('span');
         label.className = 'court-label';
-        label.textContent = courtLabel(ci);
+        setCourtLabel(label, ci);
 
         var matchup = document.createElement('div');
         matchup.className = 'matchup';
@@ -2266,7 +2288,7 @@
         emptyRow.className = 'court-row empty';
         var emptyLabel = document.createElement('span');
         emptyLabel.className = 'court-label';
-        emptyLabel.textContent = courtLabel(ci2);
+        setCourtLabel(emptyLabel, ci2);
         var emptyText = document.createElement('span');
         emptyText.className = 'empty-court-text';
         emptyText.textContent = t('emptyCourt');
