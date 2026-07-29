@@ -3,7 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ラケットサークル組み合わせくん</title>
+<title>ダブルス組み合わせくん</title>
+<link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#1a7f5a">
 <style>
   :root {
     --bg: #f4f6f8;
@@ -35,7 +39,7 @@
     gap: 10px;
   }
   header h1 { font-size: 1.05rem; font-weight: 700; flex: 1; }
-  header .ball { font-size: 1.4rem; }
+  .logo-img { width: 30px; height: 30px; border-radius: 22%; display: block; flex-shrink: 0; }
   .lang-select {
     background: rgba(255,255,255,0.15);
     color: #fff;
@@ -556,7 +560,7 @@
   @media (max-width: 560px) {
     header { padding: 12px 10px; gap: 6px; }
     header h1 { font-size: 0.84rem; letter-spacing: -0.02em; }
-    header .ball { font-size: 1.1rem; }
+    .logo-img { width: 26px; height: 26px; }
     .lang-select { padding: 4px 4px; font-size: 0.78rem; }
     main { padding: 12px; }
     .card { padding: 14px 12px; }
@@ -597,8 +601,8 @@
 </head>
 <body>
 <header>
-  <span class="ball">🎾</span>
-  <h1 id="app-title">ラケットサークル組み合わせくん</h1>
+  <img class="logo-img" src="icon-192.png" alt="">
+  <h1 id="app-title">ダブルス組み合わせくん</h1>
   <select class="lang-select" id="lang-select" aria-label="Language">
     <option value="ja">日本語</option>
     <option value="en">English</option>
@@ -807,7 +811,7 @@
   // ---------- 多言語 ----------
   var I18N = {
     ja: {
-      appTitle: 'ラケットサークル組み合わせくん',
+      appTitle: 'ダブルス組み合わせくん',
       tabSettings: '⚙️ 設定',
       tabSchedule: '📋 対戦表',
       circleTitle: 'サークル',
@@ -897,7 +901,7 @@
       pairNum: 'ペア{n}'
     },
     en: {
-      appTitle: 'Racket Club Matchmaker',
+      appTitle: 'Doubles Matchmaker',
       tabSettings: '⚙️ Settings',
       tabSchedule: '📋 Schedule',
       circleTitle: 'Circle',
@@ -972,7 +976,7 @@
       pairNum: 'P{n}'
     },
     vi: {
-      appTitle: 'Trình ghép trận CLB vợt',
+      appTitle: 'Trình ghép trận đánh đôi',
       tabSettings: '⚙️ Cài đặt',
       tabSchedule: '📋 Lịch đấu',
       circleTitle: 'Câu lạc bộ',
