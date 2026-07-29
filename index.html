@@ -1630,6 +1630,7 @@
   function packCircleData(circleName, d) {
     var payload = {
       v: 1,
+      l: lang, // 作成時の表示言語（開いた側も同じ言語で表示する）
       n: circleName,
       m: d.members.map(packMember),
       a: Object.keys(d.attending),
@@ -1734,6 +1735,16 @@
     decompressText(decodeURIComponent(m[1])).then(function (json) {
       var payload = JSON.parse(json);
       if (!payload || payload.v !== 1 || !payload.m) throw new Error('bad payload');
+      // リンク作成時の言語で表示する（例: 日本語で作成→開いた側も日本語）
+      if (payload.l && I18N[payload.l] && lang !== payload.l) {
+        lang = payload.l;
+        save();
+        applyLang();
+        refreshValues();
+        renderMembers();
+        renderStoredSchedule();
+        renderCsDates();
+      }
       pendingImport = payload;
       document.getElementById('import-banner-text').textContent =
         t('importBanner', { name: payload.n || t('circleDefault') });
